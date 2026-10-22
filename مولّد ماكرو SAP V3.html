@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>مولّد ماكرو SAP</title>
+<style>
+:root{--bg:#f4f6f8;--card:#fff;--tx:#1b2430;--mu:#6b7785;--bd:#dde3ea;--ac:#0b6e4f;--ac2:#e6f4ee;--cd:#10151c;--ct:#d6e2f0;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12171d;--card:#1b222b;--tx:#e8edf3;--mu:#97a3b0;--bd:#2b3540;--ac:#3fbf93;--ac2:#18352b;--cd:#0b0f14;--ct:#d6e2f0}}
+:root[data-theme="dark"]{--bg:#12171d;--card:#1b222b;--tx:#e8edf3;--mu:#97a3b0;--bd:#2b3540;--ac:#3fbf93;--ac2:#18352b;--cd:#0b0f14;--ct:#d6e2f0}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 "Segoe UI",Tahoma,Arial,sans-serif;padding:12px}
+h1{font-size:19px;margin:4px 0 12px}
+.g{display:grid;grid-template-columns:330px 1fr;gap:12px;max-width:1200px;margin:auto}
+@media(max-width:820px){.g{grid-template-columns:1fr}}
+.c{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:12px;margin-bottom:12px}
+h2{font-size:14px;margin:0 0 8px;color:var(--mu)}
+label{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:5px 0;font-size:13px}
+input,select{background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:4px 7px;font:inherit;max-width:150px}
+input[type=number]{width:64px}input.s{width:54px;direction:ltr;text-align:center}input.w{max-width:none;flex:1;direction:ltr}
+input[type=checkbox]{width:16px;height:16px}
+.pal{display:flex;flex-wrap:wrap;gap:6px}
+button{background:var(--ac2);color:var(--ac);border:1px solid var(--bd);border-radius:6px;padding:5px 9px;font:inherit;font-size:13px;cursor:pointer}
+button:hover{border-color:var(--ac)}
+.p{background:var(--ac);color:#fff;border-color:var(--ac)}
+.tabs{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.tabs button.on{background:var(--ac);color:#fff}
+.st{display:flex;align-items:center;gap:8px;border:1px solid var(--bd);border-radius:8px;padding:6px 8px;margin:6px 0;flex-wrap:wrap}
+.st b{min-width:22px;color:var(--mu);font-weight:600}
+.st .l{font-weight:600;min-width:90px}
+.st .sp{flex:1}
+.st small{color:var(--mu);font-size:12px}
+.em{color:var(--mu);font-size:13px;padding:10px;text-align:center}
+pre{background:var(--cd);color:var(--ct);border-radius:8px;padding:12px;margin:0;direction:ltr;text-align:left;overflow-x:auto;max-height:520px;font:12.5px/1.5 Consolas,monospace;white-space:pre}
+.hint{font-size:12px;color:var(--mu);margin-top:6px}
+</style>
+</head>
+<body>
+<h1>مولّد ماكرو SAP (VBA / SendKeys)</h1>
+<div class="g">
+<div>
+ <div class="c"><h2>الإعدادات</h2>
+  <label>اسم الماكرو <input data-c="sub" class="s" style="width:110px"></label>
+  <label>اسم الشيت <input data-c="sheet" class="s" style="width:110px"></label>
+  <label>عمود تحديد آخر صف <input data-c="lastCol" class="s"></label>
+  <label>أول صف <input type="number" data-c="startRow"></label>
+  <label>حجم الدفعة (صفوف) <input type="number" data-c="batch"></label>
+  <label>انتظار قبل البدء (ثانية) <input type="number" data-c="startWait"></label>
+  <label>عنوان نافذة SAP (اختياري) <input data-c="win" class="s" style="width:120px"></label>
+  <label>رسالة قبل كل دفعة <input type="checkbox" data-c="pause"></label>
+  <label>نص الرسالة <input data-c="msg" class="w"></label>
+  <label>انتظار بعدها (ثانية) <input type="number" data-c="wait"></label>
+  <label>تأخير بين الأوامر (ms) <input type="number" data-c="delay"></label>
+  <label>إعادة تشغيل NumLock في النهاية <input type="checkbox" data-c="numlock"></label>
+ </div>
+ <div class="c"><h2>الأوامر المتاحة (تُضاف للقسم المحدد)</h2>
+  <div class="pal" id="pal"></div>
+  <div class="hint">كل أمر له عدد تكرار. "داخل الصف" = يتنفذ لكل صف في الدفعة.</div>
+ </div>
+ <div class="c"><h2>نماذج جاهزة</h2>
+  <div class="pal"><button onclick="preset(1)">ماكرو mi10WQ</button><button onclick="preset(2)">Ctrl+N + عمود B + Enter×3</button><button onclick="preset(3)">نسخ A:H + لصق مرتين</button><button onclick="preset(0)">فاضي</button></div>
+  <div class="pal" id="mine" style="margin-top:8px"></div>
+  <div class="pal" style="margin-top:8px"><input class="w" id="pn" placeholder="اسم النموذج"><button class="p" id="sv">حفظ كنموذج</button></div>
+ </div>
+</div>
+<div>
+ <div class="c"><h2>ترتيب الأوامر</h2>
+  <div class="tabs" id="tabs"></div>
+  <div id="list"></div>
+ </div>
+ <div class="c"><h2>كود VBA</h2>
+  <div class="tabs"><button class="p" id="cp">نسخ الكود</button></div>
+  <pre id="code"></pre>
+  <div class="hint">الصق الكود في Module جديد (Alt+F11 ← Insert ← Module) وشغّل الماكرو، وبعدها حط المؤشر على أول حقل في SAP.</div>
+ </div>
+</div>
+</div>
+<script>
+const $=s=>document.querySelector(s);
+const KEYS=[['TAB','Tab','{TAB}'],['STAB','Shift+Tab','+{TAB}'],['ENTER','Enter','{ENTER}'],['PGUP','Page Up','{PGUP}'],['PGDN','Page Down','{PGDN}'],['UP','↑','{UP}'],['DOWN','↓','{DOWN}'],['LEFT','←','{LEFT}'],['RIGHT','→','{RIGHT}'],['ESC','Esc','{ESC}'],['F4','F4','{F4}'],['F8','F8','{F8}'],['CN','Ctrl+N','^n'],['CC','Ctrl+C','^c'],['CV','Ctrl+V','^v'],['CS','Ctrl+S','^s'],['CA','Ctrl+A','^a']];
+const NAV={PGUP:'&H21',PGDN:'&H22',LEFT:'&H25',UP:'&H26',RIGHT:'&H27',DOWN:'&H28'};const SEC={pre:'قبل الدفعة',row:'داخل الصف (لكل صف)',post:'بعد الدفعة'};
+const CFG={sub:'RunMacro',sheet:'Filter',lastCol:'Z',startRow:2,batch:15,startWait:5,win:'',pause:false,msg:'تم تجهيز دفعة جديدة من الصف',wait:5,delay:0,numlock:false};
+let S={cfg:{...CFG},pre:[],row:[],post:[]},tab='row';
+const k=(k,n=1,skip=false)=>({t:'key',k,n,skip});
+const dt=(col,mode='Text',skip=false)=>({t:'data',col,mode,skip});
+function preset(n){
+ S={cfg:{...CFG},pre:[],row:[],post:[]};
+ if(n==1){Object.assign(S.cfg,{sub:'mi10WQ',batch:14,numlock:true});
+  S.row=[dt('Z'),k('TAB'),dt('AC'),k('TAB',2),dt('AA','Value'),k('TAB',2),k('TAB',2,true)]}
+ if(n==2){S.pre=[k('CN'),k('TAB',5)];S.row=[dt('B'),k('DOWN')];S.post=[k('ENTER',3)]}
+ if(n==3){S.pre=[{t:'copy',c1:'A',n:8},{t:'paste',n:2,d1:300,d2:500}]}
+ tab=n==3?'pre':'row';draw();
+}
+try{const x=JSON.parse(localStorage.getItem('mb1'));if(x&&x.cfg){S=x}}catch(e){}
+S.cfg={...CFG,...S.cfg};
+['pre','row','post'].forEach(l=>(S[l]||[]).forEach(s=>{if(s.t=='copy'&&!s.n)s.n=Math.max(1,ci(s.c2)-ci(s.c1)+1)}));
+const save=()=>{try{localStorage.setItem('mb1',JSON.stringify(S))}catch(e){}};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const q=s=>String(s).replace(/"/g,'""');
+function ci(c){let n=0;for(const ch of String(c||'A').toUpperCase())if(ch>='A'&&ch<='Z')n=n*26+ch.charCodeAt(0)-64;return n||1}
+function cl(n){let s='';while(n>0){const m=(n-1)%26;s=String.fromCharCode(65+m)+s;n=Math.floor((n-1)/26)}return s}
+function rg(s){return `= ${s.c1}:${cl(ci(s.c1)+s.n-1)} (${tab=='row'?'الصف الحالي':'صفوف الدفعة'})`}
+const sk=s=>String(s).replace(/[+^%~(){}\[\]]/g,'{$&}');
+const kc=(c,n)=>{const m=c.match(/^\{(\w+)\}$/);return m&&n>1?`{${m[1]} ${n}}`:c.repeat(n)};
+function add(o){S[tab].push(o);draw()}
+function pal(){
+ let h=KEYS.map(x=>`<button data-k="${x[0]}">${x[1]}</button>`).join('');
+ if(tab=='row')h+='<button data-t="data">قيمة عمود</button>';
+ h+='<button data-t="copy">نسخ رينج</button><button data-t="paste">لصق + Enter (متكرر)</button>';
+ h+='<button data-t="text">نص ثابت</button><button data-t="raw">كود SendKeys</button><button data-t="wait">انتظار (ثواني)</button><button data-t="waitms">انتظار (ms)</button><button data-t="msg">رسالة</button>';
+ $('#pal').innerHTML=h}
+$('#pal').onclick=e=>{const b=e.target.closest('button');if(!b)return;
+ if(b.dataset.k)return add(k(b.dataset.k));
+ const t=b.dataset.t;
+ add(t=='data'?dt('B'):t=='copy'?{t,c1:'A',n:8}:t=='paste'?{t,n:2,d1:300,d2:500}:t=='waitms'?{t,n:500}:t=='wait'?{t,n:1}:t=='msg'?{t,v:'تأكد من الشاشة ثم اضغط OK'}:{t,v:'',skip:false})};
+function tabs(){$('#tabs').innerHTML=Object.keys(SEC).map(x=>`<button class="${x==tab?'on':''}" data-s="${x}">${SEC[x]} (${S[x].length})</button>`).join('')}
+$('#tabs').onclick=e=>{const b=e.target.closest('button');if(b){tab=b.dataset.s;draw()}};
+function item(s,i){
+ const kn=KEYS.find(x=>x[0]==s.k);let l,p='';
+ if(s.t=='key'){l=kn[1];p=`× <input type="number" min="1" data-f="n" value="${s.n}">`}
+ else if(s.t=='data'){l='قيمة عمود';p=`<input class="s" data-f="col" value="${esc(s.col)}"><select data-f="mode"><option ${s.mode=='Text'?'selected':''}>Text</option><option ${s.mode=='Value'?'selected':''}>Value</option></select>`}
+ else if(s.t=='text'||s.t=='raw'){l=s.t=='text'?'نص ثابت':'كود SendKeys';p=`<input class="w" data-f="v" value="${esc(s.v)}">`}
+ else if(s.t=='copy'){l='نسخ رينج';p=`من عمود <input class="s" data-f="c1" value="${esc(s.c1)}"> عدد الأعمدة <input type="number" min="1" data-f="n" value="${s.n}"> <small class="rg">${rg(s)}</small>`}
+ else if(s.t=='paste'){l='لصق + Enter';p=`<select data-f="m"><option value="ctrl" ${s.m!='shift'?'selected':''}>Ctrl+V</option><option value="shift" ${s.m=='shift'?'selected':''}>Shift+Insert</option></select> × <input type="number" min="1" data-f="n" value="${s.n}"> <small>انتظار</small> <input type="number" data-f="d1" value="${s.d1}"><small>ms ثم Enter، وبعده انتظار</small> <input type="number" data-f="d2" value="${s.d2}"><small>ms</small>`}
+ else if(s.t=='waitms'){l='انتظار (ms)';p=`<input type="number" min="1" data-f="n" value="${s.n}"> ms`}
+ else if(s.t=='wait'){l='انتظار';p=`<input type="number" min="1" data-f="n" value="${s.n}"> ثانية`}
+ else{l='رسالة';p=`<input class="w" data-f="v" value="${esc(s.v)}" style="direction:rtl">`}
+ const sg=tab=='row'?(s.t!='wait'&&s.t!='msg'?`<label style="margin:0"><input type="checkbox" data-f="skip" ${s.skip?'checked':''}><small>مش في آخر صف</small></label>`:''):`<label style="margin:0"><input type="checkbox" data-f="skip" ${s.skip?'checked':''}><small>مش في آخر دفعة</small></label><label style="margin:0"><input type="checkbox" data-f="first" ${s.first?'checked':''}><small>أول دفعة فقط</small></label>`;
+ return `<div class="st" data-i="${i}"><b>${i+1}</b><span class="l">${l}</span>${p}<span class="sp"></span>${sg}<button data-a="up">↑</button><button data-a="dn">↓</button><button data-a="dup">نسخ</button><button data-a="del">✕</button></div>`}
+function list(){$('#list').innerHTML=S[tab].map(item).join('')||'<div class="em">لسه مفيش أوامر — اضغط على أي أمر من القائمة لإضافته</div>'}
+$('#list').addEventListener('input',e=>{const el=e.target,r=el.closest('.st');if(!r)return;const s=S[tab][+r.dataset.i],f=el.dataset.f;
+ if(el.type=='checkbox')s[f]=el.checked;else if(el.type=='number')s[f]=Math.max(1,+el.value||1);
+ else{s[f]=el.value;if(f=='col'||f=='c1'||f=='c2'){s[f]=el.value.toUpperCase();}}const g=r.querySelector('.rg');if(g)g.textContent=rg(s);
+ save();code()});
+$('#list').onclick=e=>{const b=e.target.closest('button');if(!b)return;const L=S[tab],i=+b.closest('.st').dataset.i,a=b.dataset.a;
+ if(a=='del')L.splice(i,1);
+ if(a=='dup')L.splice(i+1,0,JSON.parse(JSON.stringify(L[i])));
+ if(a=='up'&&i>0)[L[i-1],L[i]]=[L[i],L[i-1]];
+ if(a=='dn'&&i<L.length-1)[L[i+1],L[i]]=[L[i],L[i+1]];
+ draw()};
+document.querySelectorAll('[data-c]').forEach(el=>el.oninput=()=>{const f=el.dataset.c;S.cfg[f]=el.type=='checkbox'?el.checked:el.type=='number'?+el.value:el.value;save();code()});
+function cfgSet(){document.querySelectorAll('[data-c]').forEach(el=>{const v=S.cfg[el.dataset.c];el.type=='checkbox'?el.checked=!!v:el.value=v})}
+function lines(s,row){
+ if(s.t=='key'){const kd=KEYS.find(x=>x[0]==s.k);if(NAV[s.k])return Array(s.n).fill(`NavKey ${NAV[s.k]}`);if(kd[2][0]=='^')return Array(s.n).fill(`CtrlKey "${kd[2][1].toUpperCase()}"`);return[`SendKeys "${q(kc(kd[2],s.n))}", True`]}
+ if(s.t=='data')return[`SendKeys EscKeys(CStr(ws.Cells(i, "${s.col}").${s.mode})), True`];
+ if(s.t=='text')return[`SendKeys "${q(sk(s.v))}", True`];
+ if(s.t=='raw')return[`SendKeys "${q(s.v)}", True`];
+ if(s.t=='copy'){const a=row?'i':'batchStart',b=row?'i':'batchEnd';return[`ws.Range(ws.Cells(${a}, "${s.c1}"), ws.Cells(${b}, ${ci(s.c1)+s.n-1})).Copy`]}
+ if(s.t=='paste'){const r=[];for(let t=0;t<s.n;t++)r.push((s.m=='shift'?'ShiftIns':'CtrlKey "V"'),`Sleep ${s.d1}`,'SendKeys "{ENTER}", True',`Sleep ${s.d2}`);return r}
+ if(s.t=='waitms')return[`Sleep ${s.n}`];
+ if(s.t=='wait')return[`Application.Wait (Now + TimeSerial(0, 0, ${s.n}))`];
+ return[`MsgBox "${q(s.v)}", vbInformation`]}
+function block(L,row,ind){const c=S.cfg,o=[];
+ L.forEach(s=>{let x=lines(s,row);if(c.delay>0)x=x.flatMap(l=>/^(SendKeys|CtrlKey|ShiftIns|NavKey)/.test(l)?[l,`Sleep ${c.delay}`]:[l]);
+  const cd=[];if(s.skip)cd.push(row?'i <> lastRow':'batchEnd < lastRow');if(s.first&&!row)cd.push(`batchStart = ${c.startRow||1}`);if(cd.length){o.push(ind+'If '+cd.join(' And ')+' Then');x.forEach(l=>o.push(ind+'    '+l));o.push(ind+'End If')}else x.forEach(l=>o.push(ind+l))});
+ return o}
+function code(){
+ const c=S.cfg,o=['Option Explicit',''];
+ const all=[...S.pre,...S.row,...S.post],useNav=all.some(s=>s.t=='key'&&NAV[s.k]),useCtrl=useNav||all.some(s=>(s.t=='key'&&KEYS.find(x=>x[0]==s.k)[2][0]=='^')||(s.t=='paste')),useSleep=c.delay>0||useCtrl||!!c.win||all.some(s=>s.t=='paste'||s.t=='waitms'),useData=S.row.some(s=>s.t=='data');
+ if(c.numlock)o.push('Private Declare PtrSafe Function GetKeyState Lib "user32" (ByVal nVirtKey As Long) As Long');if(c.numlock||useCtrl)o.push('Private Declare PtrSafe Function keybd_event Lib "user32" (ByVal bVk As Byte, ByVal bScan As Byte, ByVal dwFlags As Long, ByVal dwExtraInfo As Long) As Long');if(useCtrl)o.push('Private Declare PtrSafe Function MapVirtualKey Lib "user32" Alias "MapVirtualKeyA" (ByVal uCode As Long, ByVal uMapType As Long) As Long');
+ if(useSleep)o.push('Private Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal ms As Long)');
+ if(useCtrl||c.numlock)o.push('','Const KEYEVENTF_KEYUP As Long = &H2');if(c.numlock)o.push('Const VK_NUMLOCK As Byte = &H90');if(useCtrl)o.push('','Private Sub CtrlKey(ByVal ch As String)','    Dim v As Byte: v = CByte(Asc(ch))','    keybd_event &H11, CByte(MapVirtualKey(&H11, 0)), 0, 0','    Sleep 30','    keybd_event v, CByte(MapVirtualKey(v, 0)), 0, 0','    Sleep 30','    keybd_event v, CByte(MapVirtualKey(v, 0)), KEYEVENTF_KEYUP, 0','    Sleep 30','    keybd_event &H11, CByte(MapVirtualKey(&H11, 0)), KEYEVENTF_KEYUP, 0','    Sleep 60','End Sub','','Private Sub ShiftIns()','    keybd_event &H10, CByte(MapVirtualKey(&H10, 0)), 0, 0','    Sleep 30','    keybd_event &H2D, CByte(MapVirtualKey(&H2D, 0)), 1, 0','    Sleep 30','    keybd_event &H2D, CByte(MapVirtualKey(&H2D, 0)), 3, 0','    Sleep 30','    keybd_event &H10, CByte(MapVirtualKey(&H10, 0)), KEYEVENTF_KEYUP, 0','    Sleep 60','End Sub');if(useNav)o.push('','Private Sub NavKey(ByVal vk As Byte)','    keybd_event vk, CByte(MapVirtualKey(vk, 0)), 1, 0','    Sleep 30','    keybd_event vk, CByte(MapVirtualKey(vk, 0)), 3, 0','    Sleep 60','End Sub');if(c.numlock)o.push('','Sub ToggleNumLock()','    If GetKeyState(VK_NUMLOCK) = 0 Then','        keybd_event VK_NUMLOCK, 0, 0, 0','        keybd_event VK_NUMLOCK, 0, KEYEVENTF_KEYUP, 0','    End If','End Sub');
+ if(useData)o.push('','Private Function EscKeys(ByVal s As String) As String','    Dim n As Long, ch As String, r As String','    For n = 1 To Len(s)','        ch = Mid$(s, n, 1)','        If InStr("+^%~(){}[]", ch) > 0 Then r = r & "{" & ch & "}" Else r = r & ch','    Next n','    EscKeys = r','End Function');
+ o.push('',`Sub ${c.sub||'RunMacro'}()`,'    Dim i As Long, batchStart As Long, batchEnd As Long, lastRow As Long, batchSize As Long','    Dim ws As Worksheet','',`    batchSize = ${c.batch||1}`,`    Set ws = ThisWorkbook.Sheets("${q(c.sheet)}")`,`    lastRow = ws.Cells(ws.Rows.Count, "${c.lastCol}").End(xlUp).Row`,'',...(c.startWait>0?[`    Application.Wait (Now + TimeSerial(0, 0, ${c.startWait}))`,'']:[]),`    batchStart = ${c.startRow||1}`,'    Do While batchStart <= lastRow','        batchEnd = Application.Min(batchStart + batchSize - 1, lastRow)','');
+ if(c.pause){o.push(`        MsgBox "${q(c.msg)} (" & batchStart & " - " & batchEnd & ")", vbInformation`);if(c.wait>0)o.push(`        Application.Wait (Now + TimeSerial(0, 0, ${c.wait}))`);o.push('')}
+ if(c.win)o.push('        On Error Resume Next',`        AppActivate "${q(c.win)}"`,'        On Error GoTo 0','        Sleep 300','');o.push(...block(S.pre,false,'        '));
+ if(S.row.length)o.push('','        For i = batchStart To batchEnd',...block(S.row,true,'            '),'        Next i','');
+ o.push(...block(S.post,false,'        '),'','        batchStart = batchEnd + 1','    Loop','','    MsgBox "Done", vbInformation');
+ if(c.numlock)o.push('    Call ToggleNumLock');
+ o.push('End Sub');
+ $('#code').textContent=o.join('\n')}
+$('#cp').onclick=()=>{const t=$('#code').textContent,done=()=>{$('#cp').textContent='تم النسخ ✓';setTimeout(()=>$('#cp').textContent='نسخ الكود',1500)};
+ const fb=()=>{const r=document.createRange();r.selectNodeContents($('#code'));const s=getSelection();s.removeAllRanges();s.addRange(r);try{document.execCommand('copy');done()}catch(e){}};
+ try{navigator.clipboard.writeText(t).then(done,fb)}catch(e){fb()}};
+function mp(){try{return JSON.parse(localStorage.getItem('mb_p'))||[]}catch(e){return[]}}
+function mine(){$('#mine').innerHTML=mp().map((p,i)=>`<span style="display:inline-flex;gap:2px"><button data-l="${i}">${esc(p.name)}</button><button data-x="${i}">✕</button></span>`).join('')}
+$('#mine').onclick=e=>{const b=e.target.closest('button');if(!b)return;const L=mp();if(b.dataset.l!=null){const p=L[+b.dataset.l];S=JSON.parse(JSON.stringify({cfg:p.cfg,pre:p.pre,row:p.row,post:p.post}));S.cfg={...CFG,...S.cfg};draw()}else if(b.dataset.x!=null){L.splice(+b.dataset.x,1);try{localStorage.setItem('mb_p',JSON.stringify(L))}catch(e){}mine()}};
+$('#sv').onclick=()=>{const n=$('#pn').value.trim()||('نموذج '+(mp().length+1));const L=mp().filter(p=>p.name!=n);L.push({name:n,...JSON.parse(JSON.stringify(S))});try{localStorage.setItem('mb_p',JSON.stringify(L))}catch(e){}$('#pn').value='';mine()};
+function draw(){save();cfgSet();tabs();pal();list();code();mine()}
+draw();
+</script>
+</body>
+</html>
