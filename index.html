@@ -203,7 +203,7 @@ function jsonp(url){
 function renderPublic(){
  const q=($('#pubSearch').value||'').trim().toLowerCase();
  const found=publicItems.filter(p=>(String(p.name||'')+' '+String(p.category||'')+' '+String(p.description||'')).toLowerCase().includes(q));
- $('#publicTemplates').innerHTML=found.map((p,i)=>`<div class="st"><span class="l">${esc(p.name)}</span><small>${esc(p.category||'General')} · ${esc(p.created_by||'')}</small><span class="sp"></span><button class="p" data-public-load="${esc(p.template_id)}">تحميل النموذج</button></div>`).join('')||'<div class="em">لا توجد نماذج مطابقة.</div>';
+ $('#publicTemplates').innerHTML=found.map((p,i)=>`<div class="st"><span class="l">${esc(p.name)}</span><small>${esc(p.category||'General')} · ${esc(p.created_by||'')}</small><span class="sp"></span><button class="p" data-public-load="${esc(p.template_id)}">إضافة إلى نماذج جاهزة</button></div>`).join('')||'<div class="em">لا توجد نماذج مطابقة.</div>';
 }
 async function refreshPublic(){
  $('#pubStatus').textContent='جارٍ تحميل النماذج المعتمدة...';
@@ -224,11 +224,18 @@ $('#publicTemplates').addEventListener('click',e=>{
  const p=publicItems.find(x=>String(x.template_id)===b.dataset.publicLoad);
  if(!p||!p.template||typeof p.template!=='object'){alert('بيانات النموذج غير صالحة');return}
  if(!Array.isArray(p.template.pre)||!Array.isArray(p.template.row)||!Array.isArray(p.template.post)||!p.template.cfg){alert('بنية النموذج لا تتوافق مع المولّد الحالي');return}
+ const saved=mp();
+ const existing=saved.findIndex(x=>x.public_template_id===p.template_id);
+ const localCopy={name:p.name,cfg:JSON.parse(JSON.stringify(p.template.cfg)),pre:JSON.parse(JSON.stringify(p.template.pre)),row:JSON.parse(JSON.stringify(p.template.row)),post:JSON.parse(JSON.stringify(p.template.post)),public_template_id:p.template_id};
+ if(existing>=0)saved[existing]=localCopy;else saved.push(localCopy);
+ try{localStorage.setItem('mb_p',JSON.stringify(saved))}
+ catch(err){alert('تعذر حفظ النموذج في نماذج جاهزة: مساحة التخزين ممتلئة أو غير متاحة.');return}
  S=JSON.parse(JSON.stringify(p.template));
  S.cfg={...CFG,...S.cfg};
  tab='row';draw();
+ mine();
  window.scrollTo({top:0,behavior:'smooth'});
- alert('تم تحميل النموذج: '+p.name);
+ alert(existing>=0?'تم تحديث النموذج داخل نماذج جاهزة وفتحه للمولد.':'تمت إضافة النموذج إلى نماذج جاهزة وفتحه للمولد.');
 });
 function draw(){save();cfgSet();tabs();pal();list();code();mine()}
 draw();
