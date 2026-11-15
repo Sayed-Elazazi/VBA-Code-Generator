@@ -274,7 +274,7 @@ $('#pmSubmit').addEventListener('click',async()=>{
  if(!author){$('#pmStatus').textContent='اكتب اسم الناشر أولاً.';return}
  if(!window.grecaptcha||recaptchaWidgetId===null){$('#pmStatus').textContent='اختبار التحقق لم يجهز بعد. حدّث الصفحة وحاول مرة أخرى.';return}
  const token=grecaptcha.getResponse(recaptchaWidgetId);
- if(!token){$('#pmStatus').textContent='يرجى اجتياز اختبار I'm not a robot.';return}
+ if(!token){$('#pmStatus').textContent='يرجى اجتياز اختبار التحقق من أنك لست روبوتًا.';return}
  const template={cfg:p.cfg,pre:p.pre,row:p.row,post:p.post};
  if(!template.cfg||!Array.isArray(template.pre)||!Array.isArray(template.row)||!Array.isArray(template.post)){ $('#pmStatus').textContent='بنية النموذج غير صحيحة.';return}
  const id=makeRequestId();
