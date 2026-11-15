@@ -74,6 +74,15 @@ pre{background:var(--cd);color:var(--ct);border-radius:8px;padding:12px;margin:0
   <pre id="code"></pre>
   <div class="hint">الصق الكود في Module جديد (Alt+F11 ← Insert ← Module) وشغّل الماكرو، وبعدها حط المؤشر على أول حقل في SAP.</div>
  </div>
+ <div class="c"><h2>مكتبة النماذج المشتركة (Public Templates)</h2>
+  <div class="pal" style="margin-bottom:8px">
+   <input class="w" id="pubSearch" placeholder="ابحث باسم النموذج أو التصنيف">
+   <button class="p" id="pubRefresh">تحديث المكتبة</button>
+  </div>
+  <div id="pubStatus" class="hint">اضغط «تحديث المكتبة» لعرض النماذج المعتمدة المنشورة.</div>
+  <div id="publicTemplates"></div>
+  <div class="hint">النماذج هنا للعرض والتحميل فقط. سنفعّل إرسال النماذج بعد إضافة حماية مناسبة لواجهة النشر.</div>
+ </div>
 </div>
 </div>
 <script>
@@ -177,6 +186,50 @@ function mp(){try{return JSON.parse(localStorage.getItem('mb_p'))||[]}catch(e){r
 function mine(){$('#mine').innerHTML=mp().map((p,i)=>`<span style="display:inline-flex;gap:2px"><button data-l="${i}">${esc(p.name)}</button><button data-x="${i}">✕</button></span>`).join('')}
 $('#mine').onclick=e=>{const b=e.target.closest('button');if(!b)return;const L=mp();if(b.dataset.l!=null){const p=L[+b.dataset.l];S=JSON.parse(JSON.stringify({cfg:p.cfg,pre:p.pre,row:p.row,post:p.post}));S.cfg={...CFG,...S.cfg};draw()}else if(b.dataset.x!=null){L.splice(+b.dataset.x,1);try{localStorage.setItem('mb_p',JSON.stringify(L))}catch(e){}mine()}};
 $('#sv').onclick=()=>{const n=$('#pn').value.trim()||('نموذج '+(mp().length+1));const L=mp().filter(p=>p.name!=n);L.push({name:n,...JSON.parse(JSON.stringify(S))});try{localStorage.setItem('mb_p',JSON.stringify(L))}catch(e){}$('#pn').value='';mine()};
+const PUBLIC_API="https://script.google.com/macros/s/AKfycbzTqqmVoFnFRl2ytpPRXI_c-ELAmXS6QW_1E_AE8X8SlqNckp6Dutcvvr0mjO6YuHBy/exec";
+let publicItems=[];
+function jsonp(url){
+ return new Promise((resolve,reject)=>{
+  const cb='vbaTplCb_'+Date.now()+'_'+Math.floor(Math.random()*100000);
+  const sc=document.createElement('script');
+  const timer=setTimeout(()=>{cleanup();reject(new Error('انتهت مهلة الاتصال'))},15000);
+  function cleanup(){clearTimeout(timer);delete window[cb];sc.remove()}
+  window[cb]=data=>{cleanup();resolve(data)};
+  sc.onerror=()=>{cleanup();reject(new Error('تعذر الاتصال بمكتبة النماذج'))};
+  sc.src=url+(url.includes('?')?'&':'?')+'callback='+cb;
+  document.head.appendChild(sc);
+ });
+}
+function renderPublic(){
+ const q=($('#pubSearch').value||'').trim().toLowerCase();
+ const found=publicItems.filter(p=>(String(p.name||'')+' '+String(p.category||'')+' '+String(p.description||'')).toLowerCase().includes(q));
+ $('#publicTemplates').innerHTML=found.map((p,i)=>`<div class="st"><span class="l">${esc(p.name)}</span><small>${esc(p.category||'General')} · ${esc(p.created_by||'')}</small><span class="sp"></span><button class="p" data-public-load="${esc(p.template_id)}">تحميل النموذج</button></div>`).join('')||'<div class="em">لا توجد نماذج مطابقة.</div>';
+}
+async function refreshPublic(){
+ $('#pubStatus').textContent='جارٍ تحميل النماذج المعتمدة...';
+ $('#pubRefresh').disabled=true;
+ try{
+  const data=await jsonp(PUBLIC_API+'?action=list');
+  if(!data||!data.success)throw new Error(data&&data.message?data.message:'استجابة غير صحيحة');
+  publicItems=Array.isArray(data.templates)?data.templates:[];
+  renderPublic();
+  $('#pubStatus').textContent='تم تحميل '+publicItems.length+' نموذج معتمد.';
+ }catch(err){$('#pubStatus').textContent='تعذر تحميل المكتبة: '+err.message}
+ finally{$('#pubRefresh').disabled=false}
+}
+$('#pubRefresh').addEventListener('click',refreshPublic);
+$('#pubSearch').addEventListener('input',renderPublic);
+$('#publicTemplates').addEventListener('click',e=>{
+ const b=e.target.closest('[data-public-load]');if(!b)return;
+ const p=publicItems.find(x=>String(x.template_id)===b.dataset.publicLoad);
+ if(!p||!p.template||typeof p.template!=='object'){alert('بيانات النموذج غير صالحة');return}
+ if(!Array.isArray(p.template.pre)||!Array.isArray(p.template.row)||!Array.isArray(p.template.post)||!p.template.cfg){alert('بنية النموذج لا تتوافق مع المولّد الحالي');return}
+ S=JSON.parse(JSON.stringify(p.template));
+ S.cfg={...CFG,...S.cfg};
+ tab='row';draw();
+ window.scrollTo({top:0,behavior:'smooth'});
+ alert('تم تحميل النموذج: '+p.name);
+});
 function draw(){save();cfgSet();tabs();pal();list();code();mine()}
 draw();
 </script>
