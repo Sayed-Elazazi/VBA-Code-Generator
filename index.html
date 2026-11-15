@@ -36,49 +36,6 @@ pre{background:var(--cd);color:var(--ct);border-radius:8px;padding:12px;margin:0
 .hint{font-size:12px;color:var(--mu);margin-top:6px}
 
 #publishModal{display:none;position:fixed;inset:0;background:#0009;z-index:9999;align-items:center;justify-content:center;padding:16px}#publishModal.show{display:flex}.pm-box{width:min(100%,460px);background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:12px;padding:16px;box-shadow:0 12px 40px #0004}.pm-box h2{font-size:16px;color:var(--tx)}.pm-box label{display:block}.pm-box input{width:100%;max-width:none;margin-top:4px}.pm-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.pm-status{font-size:12px;color:var(--mu);margin-top:8px;min-height:18px}.pm-captcha{margin-top:12px;direction:ltr;min-height:78px}
-
-/* Layout recovery: consistent sizing and controls */
-body{min-height:100vh}
-.g{width:100%;align-items:start}
-.g>div{min-width:0}
-.c{min-width:0;box-shadow:0 2px 8px #00000008}
-.c h2{line-height:1.6}
-.pal{align-items:center}
-.pal button,.tabs button,.st button{white-space:nowrap;min-height:32px}
-input,select{min-height:30px}
-input.w{min-width:120px}
-.st{min-width:0}
-.st .l{overflow-wrap:anywhere}
-#list .st input{max-width:110px}
-#publicTemplates .st{align-items:center}
-#publicTemplates .st .l{flex:1 1 140px}
-#mine>span{max-width:100%}
-#mine button{max-width:220px;overflow:hidden;text-overflow:ellipsis}
-#publishModal{box-sizing:border-box}
-.pm-box{max-height:calc(100vh - 32px);overflow:auto}
-@media(max-width:820px){
- body{padding:8px}
- .g{grid-template-columns:minmax(0,1fr);gap:0}
- .g>div{width:100%}
- .c{padding:10px}
- label{gap:10px}
- label input:not([type=checkbox]),label select{max-width:52%;min-width:0}
- .st{gap:6px}
- .st .l{min-width:75px}
- .st .sp{display:none}
- .st input.w{min-width:100px;flex:1}
- #pal button{flex:1 1 auto}
-}
-@media(max-width:480px){
- h1{font-size:17px}
- .tabs button{flex:1 1 auto}
- .st{align-items:flex-start}
- .st .l{flex:1 1 100%;min-width:0}
- .st .sp{display:none}
- .st button{padding:4px 7px}
- #publicTemplates .st{align-items:flex-start}
-}
-
 </style>
 </head>
 <body>
@@ -126,7 +83,7 @@ input.w{min-width:120px}
   </div>
   <div id="pubStatus" class="hint">اضغط «تحديث المكتبة» لعرض النماذج المعتمدة المنشورة.</div>
   <div id="publicTemplates"></div>
-  <div class="hint">يمكنك تحميل النماذج المعتمدة، كما يمكنك نشر نماذجك المحلية لإرسالها إلى المسؤول للمراجعة قبل اعتمادها.</div>
+  <div class="hint">النماذج هنا للعرض والتحميل فقط. سنفعّل إرسال النماذج بعد إضافة حماية مناسبة لواجهة النشر.</div>
  </div>
 </div>
 </div>
