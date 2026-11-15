@@ -34,6 +34,8 @@ button:hover{border-color:var(--ac)}
 .em{color:var(--mu);font-size:13px;padding:10px;text-align:center}
 pre{background:var(--cd);color:var(--ct);border-radius:8px;padding:12px;margin:0;direction:ltr;text-align:left;overflow-x:auto;max-height:520px;font:12.5px/1.5 Consolas,monospace;white-space:pre}
 .hint{font-size:12px;color:var(--mu);margin-top:6px}
+
+#publishModal{display:none;position:fixed;inset:0;background:#0009;z-index:9999;align-items:center;justify-content:center;padding:16px}#publishModal.show{display:flex}.pm-box{width:min(100%,460px);background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:12px;padding:16px;box-shadow:0 12px 40px #0004}.pm-box h2{font-size:16px;color:var(--tx)}.pm-box label{display:block}.pm-box input{width:100%;max-width:none;margin-top:4px}.pm-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.pm-status{font-size:12px;color:var(--mu);margin-top:8px;min-height:18px}.pm-captcha{margin-top:12px;direction:ltr;min-height:78px}
 </style>
 </head>
 <body>
@@ -85,7 +87,12 @@ pre{background:var(--cd);color:var(--ct);border-radius:8px;padding:12px;margin:0
  </div>
 </div>
 </div>
+
+<div id="publishModal" role="dialog" aria-modal="true" aria-labelledby="pmTitle"><div class="pm-box"><h2 id="pmTitle">نشر نموذج للمكتبة المشتركة</h2><div class="hint" id="pmTemplateName"></div><label>وصف النموذج <input id="pmDescription" maxlength="500" placeholder="اكتب وصفًا مختصرًا"></label><label>التصنيف <input id="pmCategory" maxlength="60" value="General"></label><label>اسم الناشر <input id="pmAuthor" maxlength="80" placeholder="اسمك أو اسم الفريق"></label><div id="recaptchaWidget" class="pm-captcha"></div><div class="pm-status" id="pmStatus">أكمل البيانات ثم اجتز اختبار التحقق.</div><div class="pm-actions"><button class="p" id="pmSubmit">إرسال للمراجعة</button><button id="pmCancel">إلغاء</button></div></div></div>
+<iframe name="templateSubmitFrame" id="templateSubmitFrame" style="display:none"></iframe>
+<form id="templateSubmitForm" method="POST" target="templateSubmitFrame" style="display:none"><input type="hidden" name="payload" id="templatePayload"></form>
 <script>
+const RECAPTCHA_SITE_KEY="6LcMeiEuAAAAABZzlHLrhhHLTOqi58YHaCFLRSTt";
 const $=s=>document.querySelector(s);
 const KEYS=[['TAB','Tab','{TAB}'],['STAB','Shift+Tab','+{TAB}'],['ENTER','Enter','{ENTER}'],['PGUP','Page Up','{PGUP}'],['PGDN','Page Down','{PGDN}'],['UP','↑','{UP}'],['DOWN','↓','{DOWN}'],['LEFT','←','{LEFT}'],['RIGHT','→','{RIGHT}'],['ESC','Esc','{ESC}'],['F4','F4','{F4}'],['F8','F8','{F8}'],['CN','Ctrl+N','^n'],['CC','Ctrl+C','^c'],['CV','Ctrl+V','^v'],['CS','Ctrl+S','^s'],['CA','Ctrl+A','^a']];
 const NAV={PGUP:'&H21',PGDN:'&H22',LEFT:'&H25',UP:'&H26',RIGHT:'&H27',DOWN:'&H28'};const SEC={pre:'قبل الدفعة',row:'داخل الصف (لكل صف)',post:'بعد الدفعة'};
@@ -183,8 +190,8 @@ $('#cp').onclick=()=>{const t=$('#code').textContent,done=()=>{$('#cp').textCont
  const fb=()=>{const r=document.createRange();r.selectNodeContents($('#code'));const s=getSelection();s.removeAllRanges();s.addRange(r);try{document.execCommand('copy');done()}catch(e){}};
  try{navigator.clipboard.writeText(t).then(done,fb)}catch(e){fb()}};
 function mp(){try{return JSON.parse(localStorage.getItem('mb_p'))||[]}catch(e){return[]}}
-function mine(){$('#mine').innerHTML=mp().map((p,i)=>`<span style="display:inline-flex;gap:2px"><button data-l="${i}">${esc(p.name)}</button><button data-x="${i}">✕</button></span>`).join('')}
-$('#mine').onclick=e=>{const b=e.target.closest('button');if(!b)return;const L=mp();if(b.dataset.l!=null){const p=L[+b.dataset.l];S=JSON.parse(JSON.stringify({cfg:p.cfg,pre:p.pre,row:p.row,post:p.post}));S.cfg={...CFG,...S.cfg};draw()}else if(b.dataset.x!=null){L.splice(+b.dataset.x,1);try{localStorage.setItem('mb_p',JSON.stringify(L))}catch(e){}mine()}};
+function mine(){$('#mine').innerHTML=mp().map((p,i)=>`<span style="display:inline-flex;gap:2px"><button data-l="${i}">${esc(p.name)}</button><button data-publish="${i}">نشر</button><button data-x="${i}">✕</button></span>`).join('')}
+$('#mine').onclick=e=>{const b=e.target.closest('button');if(!b)return;const L=mp();if(b.dataset.l!=null){const p=L[+b.dataset.l];S=JSON.parse(JSON.stringify({cfg:p.cfg,pre:p.pre,row:p.row,post:p.post}));S.cfg={...CFG,...S.cfg};draw()}else if(b.dataset.publish!=null){openPublish(+b.dataset.publish)}else if(b.dataset.x!=null){L.splice(+b.dataset.x,1);try{localStorage.setItem('mb_p',JSON.stringify(L))}catch(e){}mine()}};
 $('#sv').onclick=()=>{const n=$('#pn').value.trim()||('نموذج '+(mp().length+1));const L=mp().filter(p=>p.name!=n);L.push({name:n,...JSON.parse(JSON.stringify(S))});try{localStorage.setItem('mb_p',JSON.stringify(L))}catch(e){}$('#pn').value='';mine()};
 const PUBLIC_API="https://script.google.com/macros/s/AKfycbzTqqmVoFnFRl2ytpPRXI_c-ELAmXS6QW_1E_AE8X8SlqNckp6Dutcvvr0mjO6YuHBy/exec";
 let publicItems=[];
@@ -217,6 +224,78 @@ async function refreshPublic(){
  }catch(err){$('#pubStatus').textContent='تعذر تحميل المكتبة: '+err.message}
  finally{$('#pubRefresh').disabled=false}
 }
+
+let publishIndex=-1,recaptchaWidgetId=null,publishBusy=false;
+window.onRecaptchaLoad=function(){
+ if(!window.grecaptcha||!grecaptcha.render)return;
+ const box=$('#recaptchaWidget');
+ if(box&&!box.dataset.rendered){
+  recaptchaWidgetId=grecaptcha.render(box,{sitekey:RECAPTCHA_SITE_KEY,theme:document.documentElement.dataset.theme==='dark'?'dark':'light'});
+  box.dataset.rendered='1';
+ }
+};
+function openPublish(i){
+ const L=mp(),p=L[i];if(!p)return;
+ publishIndex=i;$('#pmTemplateName').textContent='النموذج: '+p.name;
+ $('#pmDescription').value=p.description||'';
+ $('#pmCategory').value=p.category||'General';
+ $('#pmAuthor').value='';
+ $('#pmStatus').textContent='أكمل البيانات ثم اجتز اختبار التحقق.';
+ $('#pmSubmit').disabled=false;
+ $('#publishModal').classList.add('show');
+ if(window.grecaptcha&&grecaptcha.render)window.onRecaptchaLoad();
+}
+function closePublish(){
+ $('#publishModal').classList.remove('show');publishIndex=-1;
+ if(window.grecaptcha&&recaptchaWidgetId!==null)grecaptcha.reset(recaptchaWidgetId);
+}
+$('#pmCancel').addEventListener('click',closePublish);
+$('#publishModal').addEventListener('click',e=>{if(e.target.id==='publishModal')closePublish()});
+function makeRequestId(){
+ if(window.crypto&&crypto.randomUUID)return crypto.randomUUID();
+ return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&3|8)).toString(16)});
+}
+async function waitForSubmission(id){
+ for(let i=0;i<8;i++){
+  await new Promise(r=>setTimeout(r,1500));
+  try{
+   const d=await jsonp(PUBLIC_API+'?action=status&request_id='+encodeURIComponent(id));
+   if(d&&d.success&&d.found)return d;
+  }catch(e){}
+ }
+ return null;
+}
+$('#pmSubmit').addEventListener('click',async()=>{
+ if(publishBusy||publishIndex<0)return;
+ const L=mp(),p=L[publishIndex];if(!p)return;
+ const author=$('#pmAuthor').value.trim(),description=$('#pmDescription').value.trim(),category=$('#pmCategory').value.trim()||'General';
+ if(!author){$('#pmStatus').textContent='اكتب اسم الناشر أولاً.';return}
+ if(!window.grecaptcha||recaptchaWidgetId===null){$('#pmStatus').textContent='اختبار التحقق لم يجهز بعد. حدّث الصفحة وحاول مرة أخرى.';return}
+ const token=grecaptcha.getResponse(recaptchaWidgetId);
+ if(!token){$('#pmStatus').textContent='يرجى اجتياز اختبار I'm not a robot.';return}
+ const template={cfg:p.cfg,pre:p.pre,row:p.row,post:p.post};
+ if(!template.cfg||!Array.isArray(template.pre)||!Array.isArray(template.row)||!Array.isArray(template.post)){ $('#pmStatus').textContent='بنية النموذج غير صحيحة.';return}
+ const id=makeRequestId();
+ const payload={action:'submit',request_id:id,name:String(p.name||'').trim(),description,category,created_by:author,template,recaptcha_token:token};
+ publishBusy=true;$('#pmSubmit').disabled=true;$('#pmStatus').textContent='جارٍ إرسال النموذج والتحقق من الطلب...';
+ try{
+  $('#templateSubmitForm').action=PUBLIC_API;
+  $('#templatePayload').value=JSON.stringify(payload);
+  $('#templateSubmitForm').submit();
+  const result=await waitForSubmission(id);
+  if(result&&result.status==='PENDING'){
+   $('#pmStatus').textContent='تم استلام النموذج بنجاح، وهو الآن قيد مراجعة المسؤول قبل نشره.';
+   setTimeout(closePublish,2800);
+  }else{
+   $('#pmStatus').textContent='لم يصل تأكيد من الخادم. راجع إعدادات Apps Script وسجل التنفيذ، ثم حاول مرة أخرى إذا لم يظهر الطلب في جدول Templates.';
+   grecaptcha.reset(recaptchaWidgetId);
+  }
+ }catch(err){
+  $('#pmStatus').textContent='تعذر إرسال النموذج: '+err.message;
+  if(window.grecaptcha)grecaptcha.reset(recaptchaWidgetId);
+ }finally{publishBusy=false;$('#pmSubmit').disabled=false}
+});
+
 $('#pubRefresh').addEventListener('click',refreshPublic);
 $('#pubSearch').addEventListener('input',renderPublic);
 $('#publicTemplates').addEventListener('click',e=>{
@@ -240,5 +319,6 @@ $('#publicTemplates').addEventListener('click',e=>{
 function draw(){save();cfgSet();tabs();pal();list();code();mine()}
 draw();
 </script>
+<script src="https://www.google.com/recaptcha/api.js?onload=onRecaptchaLoad&render=explicit" async defer></script>
 </body>
 </html>
