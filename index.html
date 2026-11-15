@@ -61,7 +61,7 @@ pre{background:var(--cd);color:var(--ct);border-radius:8px;padding:12px;margin:0
   <div class="hint">كل أمر له عدد تكرار. "داخل الصف" = يتنفذ لكل صف في الدفعة.</div>
  </div>
  <div class="c"><h2>نماذج جاهزة</h2>
-  <div class="pal"><button onclick="preset(1)">ماكرو mi10WQ</button><button onclick="preset(2)">Ctrl+N + عمود B + Enter×3</button><button onclick="preset(3)">نسخ A:H + لصق مرتين</button><button onclick="preset(0)">فاضي</button></div>
+  <div class="pal"><button onclick="preset(0)">فاضي</button></div>
   <div class="pal" id="mine" style="margin-top:8px"></div>
   <div class="pal" style="margin-top:8px"><input class="w" id="pn" placeholder="اسم النموذج"><button class="p" id="sv">حفظ كنموذج</button></div>
  </div>
@@ -192,7 +192,14 @@ $('#cp').onclick=()=>{const t=$('#code').textContent,done=()=>{$('#cp').textCont
  const fb=()=>{const r=document.createRange();r.selectNodeContents($('#code'));const s=getSelection();s.removeAllRanges();s.addRange(r);try{document.execCommand('copy');done()}catch(e){}};
  try{navigator.clipboard.writeText(t).then(done,fb)}catch(e){fb()}};
 function mp(){try{return JSON.parse(localStorage.getItem('mb_p'))||[]}catch(e){return[]}}
-function mine(){$('#mine').innerHTML=mp().map((p,i)=>`<span style="display:inline-flex;gap:2px"><button data-l="${i}">${esc(p.name)}</button><button data-publish="${i}">نشر</button><button data-x="${i}">✕</button></span>`).join('')}
+function mine(){
+ const saved=mp();
+ const publishedNames=new Set(publicItems.map(p=>String(p.name||'').trim().toLowerCase()));
+ $('#mine').innerHTML=saved.map((p,i)=>{
+  const isPublished=!!p.public_template_id||publishedNames.has(String(p.name||'').trim().toLowerCase());
+  return `<span style="display:inline-flex;gap:2px"><button data-l="${i}">${esc(p.name)}</button>${isPublished?'<small style="align-self:center;padding:0 6px;color:var(--mu)">منشور ✓</small>':`<button data-publish="${i}">نشر</button>`}<button data-x="${i}">✕</button></span>`;
+ }).join('');
+}
 $('#mine').onclick=e=>{const b=e.target.closest('button');if(!b)return;const L=mp();if(b.dataset.l!=null){const p=L[+b.dataset.l];S=JSON.parse(JSON.stringify({cfg:p.cfg,pre:p.pre,row:p.row,post:p.post}));S.cfg={...CFG,...S.cfg};draw()}else if(b.dataset.publish!=null){openPublish(+b.dataset.publish)}else if(b.dataset.x!=null){L.splice(+b.dataset.x,1);try{localStorage.setItem('mb_p',JSON.stringify(L))}catch(e){}mine()}};
 $('#sv').onclick=()=>{const n=$('#pn').value.trim()||('نموذج '+(mp().length+1));const L=mp().filter(p=>p.name!=n);L.push({name:n,...JSON.parse(JSON.stringify(S))});try{localStorage.setItem('mb_p',JSON.stringify(L))}catch(e){}$('#pn').value='';mine()};
 const PUBLIC_API="https://script.google.com/macros/s/AKfycbzTqqmVoFnFRl2ytpPRXI_c-ELAmXS6QW_1E_AE8X8SlqNckp6Dutcvvr0mjO6YuHBy/exec";
@@ -286,6 +293,12 @@ $('#pmSubmit').addEventListener('click',async()=>{
   $('#templateSubmitForm').submit();
   const result=await waitForSubmission(id);
   if(result&&result.status==='PENDING'){
+   const savedTemplates=mp();
+   if(savedTemplates[publishIndex]){
+    savedTemplates[publishIndex].public_template_id=result.template_id||id;
+    try{localStorage.setItem('mb_p',JSON.stringify(savedTemplates))}catch(e){}
+    mine();
+   }
    $('#pmStatus').textContent='تم استلام النموذج بنجاح، وهو الآن قيد مراجعة المسؤول قبل نشره.';
    setTimeout(closePublish,2800);
   }else{
