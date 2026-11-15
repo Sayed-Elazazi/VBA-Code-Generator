@@ -229,6 +229,7 @@ async function refreshPublic(){
   if(!data||!data.success)throw new Error(data&&data.message?data.message:'استجابة غير صحيحة');
   publicItems=Array.isArray(data.templates)?data.templates:[];
   renderPublic();
+  mine();
   $('#pubStatus').textContent='تم تحميل '+publicItems.length+' نموذج معتمد.';
  }catch(err){$('#pubStatus').textContent='تعذر تحميل المكتبة: '+err.message}
  finally{$('#pubRefresh').disabled=false}
