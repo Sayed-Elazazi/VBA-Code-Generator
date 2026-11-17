@@ -50,6 +50,8 @@ pre{background:var(--cd);color:var(--ct);border-radius:8px;padding:12px;margin:0
   <label>حجم الدفعة (صفوف) <input type="number" data-c="batch"></label>
   <label>تفعيل تقسيم البيانات إلى أذون <input type="checkbox" data-c="groupEnabled"></label>
   <label>عمود تحديد الإذن <input data-c="groupColumn" class="s"></label>
+  <label>توقف للتأكيد بعد كل إذن <input type="checkbox" data-c="groupPause"></label>
+  <label>رسالة التأكيد <input data-c="groupMsg" class="w"></label>
   <label>انتظار قبل البدء (ثانية) <input type="number" data-c="startWait"></label>
   <label>عنوان نافذة SAP (اختياري) <input data-c="win" class="s" style="width:120px"></label>
   <label>رسالة قبل كل دفعة <input type="checkbox" data-c="pause"></label>
@@ -99,7 +101,7 @@ const RECAPTCHA_SITE_KEY="6LcMeiEuAAAAABZzlHLrhhHLTOqi58YHaCFLRSTt";
 const $=s=>document.querySelector(s);
 const KEYS=[['TAB','Tab','{TAB}'],['STAB','Shift+Tab','+{TAB}'],['ENTER','Enter','{ENTER}'],['PGUP','Page Up','{PGUP}'],['PGDN','Page Down','{PGDN}'],['UP','↑','{UP}'],['DOWN','↓','{DOWN}'],['LEFT','←','{LEFT}'],['RIGHT','→','{RIGHT}'],['ESC','Esc','{ESC}'],['F4','F4','{F4}'],['F8','F8','{F8}'],['CN','Ctrl+N','^n'],['CC','Ctrl+C','^c'],['CV','Ctrl+V','^v'],['CS','Ctrl+S','^s'],['CA','Ctrl+A','^a']];
 const NAV={PGUP:'&H21',PGDN:'&H22',LEFT:'&H25',UP:'&H26',RIGHT:'&H27',DOWN:'&H28'};const SEC={groupPre:'بداية كل إذن',pre:'قبل الدفعة',row:'داخل الصف (لكل صف)',post:'بعد الدفعة',groupPost:'بعد كل إذن'};
-const CFG={sub:'RunMacro',sheet:'Filter',lastCol:'Z',startRow:2,batch:15,groupEnabled:false,groupColumn:'H',startWait:5,win:'',pause:false,msg:'تم تجهيز دفعة جديدة من الصف',wait:5,delay:0,numlock:false};
+const CFG={sub:'RunMacro',sheet:'Filter',lastCol:'Z',startRow:2,batch:15,groupEnabled:false,groupColumn:'H',groupPause:false,groupMsg:'تم الانتهاء من الإذن الحالي وحفظه. راجع SAP وتأكد من عدم وجود رسالة خطأ، ثم اضغط Yes لبدء الإذن التالي أو No لإيقاف الماكرو.',startWait:5,win:'',pause:false,msg:'تم تجهيز دفعة جديدة من الصف',wait:5,delay:0,numlock:false};
 let S={cfg:{...CFG},groupPre:[],pre:[],row:[],post:[],groupPost:[]},tab='row';
 const k=(k,n=1,skip=false)=>({t:'key',k,n,skip});
 const dt=(col,mode='Text',skip=false)=>({t:'data',col,mode,skip});
@@ -203,7 +205,13 @@ function code(){
   o.push(...block(S.pre,false,'            '));
   if(S.row.length)o.push('            For i = batchStart To batchEnd',...block(S.row,true,'                '),'            Next i','');
   o.push(...block(S.post,false,'            '),'            batchStart = batchEnd + 1','        Loop','');
-  o.push(...block(S.groupPost,false,'        '),'        currentRow = groupEnd + 1','    Loop');
+  o.push(...block(S.groupPost,false,'        '),'        currentRow = groupEnd + 1');
+  if(c.groupPause){
+   o.push('        If currentRow <= lastRow Then',
+    `            If MsgBox("${q(c.groupMsg||'تم الانتهاء من الإذن الحالي. راجع SAP ثم اضغط Yes للمتابعة أو No للإيقاف.')}", vbYesNo + vbQuestion, "تأكيد الانتقال للإذن التالي") <> vbYes Then Exit Sub`,
+    '        End If','');
+  }
+  o.push('    Loop');
  }else{
   o.push(`    batchStart = ${startRow}`,'    Do While batchStart <= lastRow','        batchEnd = Application.Min(batchStart + batchSize - 1, lastRow)','');
   if(c.pause){o.push(`        MsgBox "${q(c.msg)} (" & batchStart & " - " & batchEnd & ")", vbInformation`);if(c.wait>0)o.push(`        Application.Wait (Now + TimeSerial(0, 0, ${c.wait}))`);o.push('')}
