@@ -48,6 +48,8 @@ pre{background:var(--cd);color:var(--ct);border-radius:8px;padding:12px;margin:0
   <label>عمود تحديد آخر صف <input data-c="lastCol" class="s"></label>
   <label>أول صف <input type="number" data-c="startRow"></label>
   <label>حجم الدفعة (صفوف) <input type="number" data-c="batch"></label>
+  <label>تفعيل تقسيم البيانات إلى أذون <input type="checkbox" data-c="groupEnabled"></label>
+  <label>عمود تحديد الإذن <input data-c="groupColumn" class="s"></label>
   <label>انتظار قبل البدء (ثانية) <input type="number" data-c="startWait"></label>
   <label>عنوان نافذة SAP (اختياري) <input data-c="win" class="s" style="width:120px"></label>
   <label>رسالة قبل كل دفعة <input type="checkbox" data-c="pause"></label>
@@ -96,13 +98,13 @@ pre{background:var(--cd);color:var(--ct);border-radius:8px;padding:12px;margin:0
 const RECAPTCHA_SITE_KEY="6LcMeiEuAAAAABZzlHLrhhHLTOqi58YHaCFLRSTt";
 const $=s=>document.querySelector(s);
 const KEYS=[['TAB','Tab','{TAB}'],['STAB','Shift+Tab','+{TAB}'],['ENTER','Enter','{ENTER}'],['PGUP','Page Up','{PGUP}'],['PGDN','Page Down','{PGDN}'],['UP','↑','{UP}'],['DOWN','↓','{DOWN}'],['LEFT','←','{LEFT}'],['RIGHT','→','{RIGHT}'],['ESC','Esc','{ESC}'],['F4','F4','{F4}'],['F8','F8','{F8}'],['CN','Ctrl+N','^n'],['CC','Ctrl+C','^c'],['CV','Ctrl+V','^v'],['CS','Ctrl+S','^s'],['CA','Ctrl+A','^a']];
-const NAV={PGUP:'&H21',PGDN:'&H22',LEFT:'&H25',UP:'&H26',RIGHT:'&H27',DOWN:'&H28'};const SEC={pre:'قبل الدفعة',row:'داخل الصف (لكل صف)',post:'بعد الدفعة'};
-const CFG={sub:'RunMacro',sheet:'Filter',lastCol:'Z',startRow:2,batch:15,startWait:5,win:'',pause:false,msg:'تم تجهيز دفعة جديدة من الصف',wait:5,delay:0,numlock:false};
-let S={cfg:{...CFG},pre:[],row:[],post:[]},tab='row';
+const NAV={PGUP:'&H21',PGDN:'&H22',LEFT:'&H25',UP:'&H26',RIGHT:'&H27',DOWN:'&H28'};const SEC={groupPre:'بداية كل إذن',pre:'قبل الدفعة',row:'داخل الصف (لكل صف)',post:'بعد الدفعة',groupPost:'بعد كل إذن'};
+const CFG={sub:'RunMacro',sheet:'Filter',lastCol:'Z',startRow:2,batch:15,groupEnabled:false,groupColumn:'H',startWait:5,win:'',pause:false,msg:'تم تجهيز دفعة جديدة من الصف',wait:5,delay:0,numlock:false};
+let S={cfg:{...CFG},groupPre:[],pre:[],row:[],post:[],groupPost:[]},tab='row';
 const k=(k,n=1,skip=false)=>({t:'key',k,n,skip});
 const dt=(col,mode='Text',skip=false)=>({t:'data',col,mode,skip});
 function preset(n){
- S={cfg:{...CFG},pre:[],row:[],post:[]};
+ S={cfg:{...CFG},groupPre:[],pre:[],row:[],post:[],groupPost:[]};
  if(n==1){Object.assign(S.cfg,{sub:'mi10WQ',batch:14,numlock:true});
   S.row=[dt('Z'),k('TAB'),dt('AC'),k('TAB',2),dt('AA','Value'),k('TAB',2),k('TAB',2,true)]}
  if(n==2){S.pre=[k('CN'),k('TAB',5)];S.row=[dt('B'),k('DOWN')];S.post=[k('ENTER',3)]}
@@ -112,8 +114,8 @@ function preset(n){
 try{const x=JSON.parse(localStorage.getItem('mb1'));if(x&&typeof x==='object')S=x}catch(e){}
 if(!S||typeof S!=='object')S={};
 S={cfg:{...CFG,...(S.cfg&&typeof S.cfg==='object'?S.cfg:{})},
-pre:Array.isArray(S.pre)?S.pre:[],row:Array.isArray(S.row)?S.row:[],post:Array.isArray(S.post)?S.post:[]};
-['pre','row','post'].forEach(l=>{S[l]=S[l].filter(s=>s&&typeof s==='object'&&typeof s.t==='string');S[l].forEach(s=>{if(s.t==='key'&&!KEYS.some(x=>x[0]===s.k))s.k='ENTER';if(s.t==='copy'&&(!Number.isFinite(+s.n)||+s.n<1))s.n=Math.max(1,ci(s.c2)-ci(s.c1)+1);if(s.t==='key'||s.t==='paste'||s.t==='wait'||s.t==='waitms')s.n=Math.max(1,parseInt(s.n,10)||1);});});
+groupPre:Array.isArray(S.groupPre)?S.groupPre:[],pre:Array.isArray(S.pre)?S.pre:[],row:Array.isArray(S.row)?S.row:[],post:Array.isArray(S.post)?S.post:[],groupPost:Array.isArray(S.groupPost)?S.groupPost:[]};
+['groupPre','pre','row','post','groupPost'].forEach(l=>{S[l]=S[l].filter(s=>s&&typeof s==='object'&&typeof s.t==='string');S[l].forEach(s=>{if(s.t==='key'&&!KEYS.some(x=>x[0]===s.k))s.k='ENTER';if(s.t==='copy'&&(!Number.isFinite(+s.n)||+s.n<1))s.n=Math.max(1,ci(s.c2)-ci(s.c1)+1);if(s.t==='key'||s.t==='paste'||s.t==='wait'||s.t==='waitms')s.n=Math.max(1,parseInt(s.n,10)||1);});});
 const save=()=>{try{localStorage.setItem('mb1',JSON.stringify(S))}catch(e){}};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const q=s=>String(s).replace(/"/g,'""');
@@ -133,7 +135,7 @@ $('#pal').onclick=e=>{const b=e.target.closest('button');if(!b)return;
  if(b.dataset.k)return add(k(b.dataset.k));
  const t=b.dataset.t;
  add(t=='data'?dt('B'):t=='copy'?{t,c1:'A',n:8}:t=='paste'?{t,n:2,d1:300,d2:500}:t=='waitms'?{t,n:500}:t=='wait'?{t,n:1}:t=='msg'?{t,v:'تأكد من الشاشة ثم اضغط OK'}:{t,v:'',skip:false})};
-function tabs(){$('#tabs').innerHTML=Object.keys(SEC).map(x=>`<button class="${x==tab?'on':''}" data-s="${x}">${SEC[x]} (${S[x].length})</button>`).join('')}
+function tabs(){$('#tabs').innerHTML=Object.keys(SEC).filter(x=>x==='groupPre'||x==='groupPost'?!!S.cfg.groupEnabled:true).map(x=>`<button class="${x==tab?'on':''}" data-s="${x}">${SEC[x]} (${S[x].length})</button>`).join('')}
 $('#tabs').onclick=e=>{const b=e.target.closest('button');if(b){tab=b.dataset.s;draw()}};
 function item(s,i){
  const kn=KEYS.find(x=>x[0]==s.k)||KEYS.find(x=>x[0]=='ENTER');let l,p='';
@@ -158,7 +160,7 @@ $('#list').onclick=e=>{const b=e.target.closest('button');if(!b)return;const L=S
  if(a=='up'&&i>0)[L[i-1],L[i]]=[L[i],L[i-1]];
  if(a=='dn'&&i<L.length-1)[L[i+1],L[i]]=[L[i],L[i+1]];
  draw()};
-document.querySelectorAll('[data-c]').forEach(el=>el.oninput=()=>{const f=el.dataset.c;S.cfg[f]=el.type=='checkbox'?el.checked:el.type=='number'?+el.value:el.value;save();code()});
+document.querySelectorAll('[data-c]').forEach(el=>el.oninput=()=>{const f=el.dataset.c;S.cfg[f]=el.type=='checkbox'?el.checked:el.type=='number'?+el.value:el.value;if(f==='groupEnabled')draw();else{save();code()}});
 function cfgSet(){document.querySelectorAll('[data-c]').forEach(el=>{const v=S.cfg[el.dataset.c];el.type=='checkbox'?el.checked=!!v:el.value=v})}
 function lines(s,row){
  if(s.t=='key'){const kd=KEYS.find(x=>x[0]==s.k);if(NAV[s.k])return Array(s.n).fill(`NavKey ${NAV[s.k]}`);if(kd[2][0]=='^')return Array(s.n).fill(`CtrlKey "${kd[2][1].toUpperCase()}"`);return[`SendKeys "${q(kc(kd[2],s.n))}", True`]}
@@ -176,19 +178,45 @@ function block(L,row,ind){const c=S.cfg,o=[];
  return o}
 function code(){
  const c=S.cfg,o=['Option Explicit',''];
- const all=[...S.pre,...S.row,...S.post],useNav=all.some(s=>s.t=='key'&&NAV[s.k]),useCtrl=useNav||all.some(s=>(s.t=='key'&&((KEYS.find(x=>x[0]==s.k)||[])[2]||'')[0]=='^')||(s.t=='paste')),useSleep=c.delay>0||useCtrl||!!c.win||all.some(s=>s.t=='paste'||s.t=='waitms'),useData=S.row.some(s=>s.t=='data');
- if(c.numlock)o.push('Private Declare PtrSafe Function GetKeyState Lib "user32" (ByVal nVirtKey As Long) As Long');if(c.numlock||useCtrl)o.push('Private Declare PtrSafe Function keybd_event Lib "user32" (ByVal bVk As Byte, ByVal bScan As Byte, ByVal dwFlags As Long, ByVal dwExtraInfo As Long) As Long');if(useCtrl)o.push('Private Declare PtrSafe Function MapVirtualKey Lib "user32" Alias "MapVirtualKeyA" (ByVal uCode As Long, ByVal uMapType As Long) As Long');
+ const all=[...S.groupPre,...S.pre,...S.row,...S.post,...S.groupPost],useNav=all.some(s=>s.t==='key'&&NAV[s.k]),useCtrl=useNav||all.some(s=>(s.t==='key'&&((KEYS.find(x=>x[0]===s.k)||[])[2]||'')[0]==='^')||(s.t==='paste')),useSleep=c.delay>0||useCtrl||!!c.win||all.some(s=>s.t==='paste'||s.t==='waitms'),useData=S.row.some(s=>s.t==='data');
+ if(c.numlock)o.push('Private Declare PtrSafe Function GetKeyState Lib "user32" (ByVal nVirtKey As Long) As Long');
+ if(c.numlock||useCtrl)o.push('Private Declare PtrSafe Function keybd_event Lib "user32" (ByVal bVk As Byte, ByVal bScan As Byte, ByVal dwFlags As Long, ByVal dwExtraInfo As Long) As Long');
+ if(useCtrl)o.push('Private Declare PtrSafe Function MapVirtualKey Lib "user32" Alias "MapVirtualKeyA" (ByVal uCode As Long, ByVal uMapType As Long) As Long');
  if(useSleep)o.push('Private Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal ms As Long)');
- if(useCtrl||c.numlock)o.push('','Const KEYEVENTF_KEYUP As Long = &H2');if(c.numlock)o.push('Const VK_NUMLOCK As Byte = &H90');if(useCtrl)o.push('','Private Sub CtrlKey(ByVal ch As String)','    Dim v As Byte: v = CByte(Asc(ch))','    keybd_event &H11, CByte(MapVirtualKey(&H11, 0)), 0, 0','    Sleep 30','    keybd_event v, CByte(MapVirtualKey(v, 0)), 0, 0','    Sleep 30','    keybd_event v, CByte(MapVirtualKey(v, 0)), KEYEVENTF_KEYUP, 0','    Sleep 30','    keybd_event &H11, CByte(MapVirtualKey(&H11, 0)), KEYEVENTF_KEYUP, 0','    Sleep 60','End Sub','','Private Sub ShiftIns()','    keybd_event &H10, CByte(MapVirtualKey(&H10, 0)), 0, 0','    Sleep 30','    keybd_event &H2D, CByte(MapVirtualKey(&H2D, 0)), 1, 0','    Sleep 30','    keybd_event &H2D, CByte(MapVirtualKey(&H2D, 0)), 3, 0','    Sleep 30','    keybd_event &H10, CByte(MapVirtualKey(&H10, 0)), KEYEVENTF_KEYUP, 0','    Sleep 60','End Sub');if(useNav)o.push('','Private Sub NavKey(ByVal vk As Byte)','    keybd_event vk, CByte(MapVirtualKey(vk, 0)), 1, 0','    Sleep 30','    keybd_event vk, CByte(MapVirtualKey(vk, 0)), 3, 0','    Sleep 60','End Sub');if(c.numlock)o.push('','Sub ToggleNumLock()','    If GetKeyState(VK_NUMLOCK) = 0 Then','        keybd_event VK_NUMLOCK, 0, 0, 0','        keybd_event VK_NUMLOCK, 0, KEYEVENTF_KEYUP, 0','    End If','End Sub');
+ if(useCtrl||c.numlock)o.push('','Const KEYEVENTF_KEYUP As Long = &H2');
+ if(c.numlock)o.push('Const VK_NUMLOCK As Byte = &H90');
+ if(useCtrl)o.push('','Private Sub CtrlKey(ByVal ch As String)','    Dim v As Byte: v = CByte(Asc(ch))','    keybd_event &H11, CByte(MapVirtualKey(&H11, 0)), 0, 0','    Sleep 30','    keybd_event v, CByte(MapVirtualKey(v, 0)), 0, 0','    Sleep 30','    keybd_event v, CByte(MapVirtualKey(v, 0)), KEYEVENTF_KEYUP, 0','    Sleep 30','    keybd_event &H11, CByte(MapVirtualKey(&H11, 0)), KEYEVENTF_KEYUP, 0','    Sleep 60','End Sub','','Private Sub ShiftIns()','    keybd_event &H10, CByte(MapVirtualKey(&H10, 0)), 0, 0','    Sleep 30','    keybd_event &H2D, CByte(MapVirtualKey(&H2D, 0)), 1, 0','    Sleep 30','    keybd_event &H2D, CByte(MapVirtualKey(&H2D, 0)), 3, 0','    Sleep 30','    keybd_event &H10, CByte(MapVirtualKey(&H10, 0)), KEYEVENTF_KEYUP, 0','    Sleep 60','End Sub');
+ if(useNav)o.push('','Private Sub NavKey(ByVal vk As Byte)','    keybd_event vk, CByte(MapVirtualKey(vk, 0)), 1, 0','    Sleep 30','    keybd_event vk, CByte(MapVirtualKey(vk, 0)), 3, 0','    Sleep 60','End Sub');
+ if(c.numlock)o.push('','Sub ToggleNumLock()','    If GetKeyState(VK_NUMLOCK) = 0 Then','        keybd_event VK_NUMLOCK, 0, 0, 0','        keybd_event VK_NUMLOCK, 0, KEYEVENTF_KEYUP, 0','    End If','End Sub');
  if(useData)o.push('','Private Function EscKeys(ByVal s As String) As String','    Dim n As Long, ch As String, r As String','    For n = 1 To Len(s)','        ch = Mid$(s, n, 1)','        If InStr("+^%~(){}[]", ch) > 0 Then r = r & "{" & ch & "}" Else r = r & ch','    Next n','    EscKeys = r','End Function');
- o.push('',`Sub ${c.sub||'RunMacro'}()`,'    Dim i As Long, batchStart As Long, batchEnd As Long, lastRow As Long, batchSize As Long','    Dim ws As Worksheet','',`    batchSize = ${c.batch||1}`,`    Set ws = ThisWorkbook.Sheets("${q(c.sheet)}")`,`    lastRow = ws.Cells(ws.Rows.Count, "${c.lastCol}").End(xlUp).Row`,'',...(c.startWait>0?[`    Application.Wait (Now + TimeSerial(0, 0, ${c.startWait}))`,'']:[]),`    batchStart = ${c.startRow||1}`,'    Do While batchStart <= lastRow','        batchEnd = Application.Min(batchStart + batchSize - 1, lastRow)','');
- if(c.pause){o.push(`        MsgBox "${q(c.msg)} (" & batchStart & " - " & batchEnd & ")", vbInformation`);if(c.wait>0)o.push(`        Application.Wait (Now + TimeSerial(0, 0, ${c.wait}))`);o.push('')}
- if(c.win)o.push('        On Error Resume Next',`        AppActivate "${q(c.win)}"`,'        On Error GoTo 0','        Sleep 300','');o.push(...block(S.pre,false,'        '));
- if(S.row.length)o.push('','        For i = batchStart To batchEnd',...block(S.row,true,'            '),'        Next i','');
- o.push(...block(S.post,false,'        '),'','        batchStart = batchEnd + 1','    Loop','','    MsgBox "Done", vbInformation');
+ const startRow=c.startRow||1;
+ o.push('',`Sub ${c.sub||'RunMacro'}()`,'    Dim i As Long, batchStart As Long, batchEnd As Long, lastRow As Long, batchSize As Long','    Dim ws As Worksheet');
+ if(c.groupEnabled)o.push('    Dim currentRow As Long, groupEnd As Long, groupValue As String');
+ o.push('',`    batchSize = ${c.batch||1}`,`    Set ws = ThisWorkbook.Sheets("${q(c.sheet)}")`,`    lastRow = ws.Cells(ws.Rows.Count, "${c.lastCol}").End(xlUp).Row`,'');
+ if(c.startWait>0)o.push(`    Application.Wait (Now + TimeSerial(0, 0, ${c.startWait}))`,'');
+ if(c.groupEnabled){
+  o.push(`    currentRow = ${startRow}`,'    Do While currentRow <= lastRow',`        groupValue = CStr(ws.Cells(currentRow, "${q(c.groupColumn||'H')}").Value)`,'        groupEnd = currentRow','        Do While groupEnd < lastRow','            If CStr(ws.Cells(groupEnd + 1, "'+${q(c.groupColumn||'H')}'+ '").Value) <> groupValue Then Exit Do','            groupEnd = groupEnd + 1','        Loop','');
+  if(c.win)o.push('        On Error Resume Next',`        AppActivate "${q(c.win)}"`,'        On Error GoTo 0','        Sleep 300','');
+  o.push(...block(S.groupPre,false,'        '));
+  o.push(`        batchStart = currentRow`,'        Do While batchStart <= groupEnd','            batchEnd = Application.Min(batchStart + batchSize - 1, groupEnd)','');
+  if(c.pause){o.push(`            MsgBox "${q(c.msg)} (" & batchStart & " - " & batchEnd & ")", vbInformation`);if(c.wait>0)o.push(`            Application.Wait (Now + TimeSerial(0, 0, ${c.wait}))`);o.push('')}
+  o.push(...block(S.pre,false,'            '));
+  if(S.row.length)o.push('            For i = batchStart To batchEnd',...block(S.row,true,'                '),'            Next i','');
+  o.push(...block(S.post,false,'            '),'            batchStart = batchEnd + 1','        Loop','');
+  o.push(...block(S.groupPost,false,'        '),'        currentRow = groupEnd + 1','    Loop');
+ }else{
+  o.push(`    batchStart = ${startRow}`,'    Do While batchStart <= lastRow','        batchEnd = Application.Min(batchStart + batchSize - 1, lastRow)','');
+  if(c.pause){o.push(`        MsgBox "${q(c.msg)} (" & batchStart & " - " & batchEnd & ")", vbInformation`);if(c.wait>0)o.push(`        Application.Wait (Now + TimeSerial(0, 0, ${c.wait}))`);o.push('')}
+  if(c.win)o.push('        On Error Resume Next',`        AppActivate "${q(c.win)}"`,'        On Error GoTo 0','        Sleep 300','');
+  o.push(...block(S.pre,false,'        '));
+  if(S.row.length)o.push('        For i = batchStart To batchEnd',...block(S.row,true,'            '),'        Next i','');
+  o.push(...block(S.post,false,'        '),'        batchStart = batchEnd + 1','    Loop');
+ }
+ o.push('','    MsgBox "Done", vbInformation');
  if(c.numlock)o.push('    Call ToggleNumLock');
  o.push('End Sub');
- $('#code').textContent=o.join('\n')}
+ $('#code').textContent=o.join('\\n')
+}
 $('#cp').onclick=()=>{const t=$('#code').textContent,done=()=>{$('#cp').textContent='تم النسخ ✓';setTimeout(()=>$('#cp').textContent='نسخ الكود',1500)};
  const fb=()=>{const r=document.createRange();r.selectNodeContents($('#code'));const s=getSelection();s.removeAllRanges();s.addRange(r);try{document.execCommand('copy');done()}catch(e){}};
  try{navigator.clipboard.writeText(t).then(done,fb)}catch(e){fb()}};
@@ -285,7 +313,7 @@ function mine(){
   return `<span style="display:inline-flex;gap:2px"><button data-l="${i}">${esc(p.name)}</button>${status}${isPublished?'':`<button data-publish="${i}">نشر</button>`}<button data-x="${i}">✕</button></span>`;
  }).join('');
 }
-$('#mine').onclick=async e=>{const b=e.target.closest('button');if(!b)return;const L=mp();if(b.dataset.l!=null){const p=L[+b.dataset.l];S=JSON.parse(JSON.stringify({cfg:p.cfg,pre:p.pre,row:p.row,post:p.post}));S.cfg={...CFG,...S.cfg};draw()}else if(b.dataset.publish!=null){openPublish(+b.dataset.publish)}else if(b.dataset.x!=null){L.splice(+b.dataset.x,1);try{await persistLocalTemplates(L);mine();$('#mineStorageStatus').textContent='تم تحديث الحفظ المحلي.'}catch(err){$('#mineStorageStatus').textContent='تعذر حفظ التغيير: '+err.message;alert('لم يكتمل الحفظ المحلي. '+err.message)}}};
+$('#mine').onclick=async e=>{const b=e.target.closest('button');if(!b)return;const L=mp();if(b.dataset.l!=null){const p=L[+b.dataset.l];S=JSON.parse(JSON.stringify({cfg:p.cfg,groupPre:p.groupPre||[],pre:p.pre,row:p.row,post:p.post,groupPost:p.groupPost||[]}));S.cfg={...CFG,...S.cfg};draw()}else if(b.dataset.publish!=null){openPublish(+b.dataset.publish)}else if(b.dataset.x!=null){L.splice(+b.dataset.x,1);try{await persistLocalTemplates(L);mine();$('#mineStorageStatus').textContent='تم تحديث الحفظ المحلي.'}catch(err){$('#mineStorageStatus').textContent='تعذر حفظ التغيير: '+err.message;alert('لم يكتمل الحفظ المحلي. '+err.message)}}};
 $('#sv').onclick=async()=>{
  const n=$('#pn').value.trim()||('نموذج '+(mp().length+1));
  const L=mp().filter(p=>String(p.name||'').trim().toLowerCase()!==n.toLowerCase());
@@ -406,7 +434,7 @@ $('#pmSubmit').addEventListener('click',async()=>{
  if(!window.grecaptcha||recaptchaWidgetId===null){$('#pmStatus').textContent='اختبار التحقق لم يجهز بعد. حدّث الصفحة وحاول مرة أخرى.';return}
  const token=grecaptcha.getResponse(recaptchaWidgetId);
  if(!token){$('#pmStatus').textContent='يرجى اجتياز اختبار التحقق من أنك لست روبوتًا.';return}
- const template={cfg:p.cfg,pre:p.pre,row:p.row,post:p.post};
+ const template={cfg:p.cfg,groupPre:p.groupPre||[],pre:p.pre,row:p.row,post:p.post,groupPost:p.groupPost||[]};
  if(!template.cfg||!Array.isArray(template.pre)||!Array.isArray(template.row)||!Array.isArray(template.post)){ $('#pmStatus').textContent='بنية النموذج غير صحيحة.';return}
  const id=makeRequestId();
  const payload={action:'submit',request_id:id,name:templateName,description,category,created_by:author,template,recaptcha_token:token};
@@ -445,10 +473,11 @@ $('#publicTemplates').addEventListener('click',async e=>{
  if(!Array.isArray(p.template.pre)||!Array.isArray(p.template.row)||!Array.isArray(p.template.post)||!p.template.cfg){alert('بنية النموذج لا تتوافق مع المولّد الحالي');return}
  const saved=mp();
  const existing=saved.findIndex(x=>x.public_template_id===p.template_id);
- const localCopy={name:p.name,cfg:JSON.parse(JSON.stringify(p.template.cfg)),pre:JSON.parse(JSON.stringify(p.template.pre)),row:JSON.parse(JSON.stringify(p.template.row)),post:JSON.parse(JSON.stringify(p.template.post)),public_template_id:p.template_id};
+ const localCopy={name:p.name,cfg:JSON.parse(JSON.stringify(p.template.cfg)),groupPre:JSON.parse(JSON.stringify(p.template.groupPre||[])),pre:JSON.parse(JSON.stringify(p.template.pre)),row:JSON.parse(JSON.stringify(p.template.row)),post:JSON.parse(JSON.stringify(p.template.post)),groupPost:JSON.parse(JSON.stringify(p.template.groupPost||[])),public_template_id:p.template_id};
  if(existing>=0)saved[existing]=localCopy;else saved.push(localCopy);
  try{await persistLocalTemplates(saved)}catch(err){alert('تعذر حفظ النموذج محليًا: '+err.message);return}
  S=JSON.parse(JSON.stringify(p.template));
+ S.groupPre=Array.isArray(S.groupPre)?S.groupPre:[];S.groupPost=Array.isArray(S.groupPost)?S.groupPost:[];
  S.cfg={...CFG,...S.cfg};
  tab='row';draw();
  mine();
