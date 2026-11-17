@@ -63,6 +63,7 @@ pre{background:var(--cd);color:var(--ct);border-radius:8px;padding:12px;margin:0
  <div class="c"><h2>نماذج جاهزة</h2>
   <div class="pal"><button onclick="preset(0)">فاضي</button></div>
   <div class="pal" id="mine" style="margin-top:8px"></div>
+  <div class="hint" id="mineStorageStatus">النماذج المحفوظة خاصة بهذا المتصفح والجهاز، ولا تُرفع إلى المكتبة إلا عند الضغط على «نشر».</div>
   <div class="pal" style="margin-top:8px"><input class="w" id="pn" placeholder="اسم النموذج"><button class="p" id="sv">حفظ كنموذج</button></div>
  </div>
 </div>
@@ -191,7 +192,73 @@ function code(){
 $('#cp').onclick=()=>{const t=$('#code').textContent,done=()=>{$('#cp').textContent='تم النسخ ✓';setTimeout(()=>$('#cp').textContent='نسخ الكود',1500)};
  const fb=()=>{const r=document.createRange();r.selectNodeContents($('#code'));const s=getSelection();s.removeAllRanges();s.addRange(r);try{document.execCommand('copy');done()}catch(e){}};
  try{navigator.clipboard.writeText(t).then(done,fb)}catch(e){fb()}};
-function mp(){try{return JSON.parse(localStorage.getItem('mb_p'))||[]}catch(e){return[]}}
+function mp(){
+ try{
+  const data=JSON.parse(localStorage.getItem('mb_p')||'[]');
+  return Array.isArray(data)?data:[];
+ }catch(e){return[]}
+}
+
+// Keep a second local copy in IndexedDB so saved/imported templates
+// can be restored if localStorage is unavailable or its entry is lost.
+let localTemplatesDbPromise=null;
+function openLocalTemplatesDb(){
+ if(!('indexedDB' in window))return Promise.reject(new Error('IndexedDB غير مدعوم'));
+ if(localTemplatesDbPromise)return localTemplatesDbPromise;
+ localTemplatesDbPromise=new Promise((resolve,reject)=>{
+  const request=indexedDB.open('VbaCodeGeneratorLocal',1);
+  request.onupgradeneeded=()=>{
+   const db=request.result;
+   if(!db.objectStoreNames.contains('localData'))db.createObjectStore('localData');
+  };
+  request.onsuccess=()=>resolve(request.result);
+  request.onerror=()=>reject(request.error||new Error('تعذر فتح التخزين المحلي'));
+ });
+ return localTemplatesDbPromise;
+}
+function persistLocalTemplates(list){
+ const data=JSON.stringify(list);
+ try{localStorage.setItem('mb_p',data)}catch(e){}
+ openLocalTemplatesDb().then(db=>{
+  const tx=db.transaction('localData','readwrite');
+  tx.objectStore('localData').put(data,'templates');
+ }).catch(()=>{});
+}
+async function restoreLocalTemplates(){
+ let localData=null;
+ try{
+  const raw=localStorage.getItem('mb_p');
+  if(raw!==null){
+   const parsed=JSON.parse(raw);
+   if(Array.isArray(parsed)){
+    localData=parsed;
+    // Seed/update the secondary local backup from the current local list.
+    openLocalTemplatesDb().then(db=>{
+     const tx=db.transaction('localData','readwrite');
+     tx.objectStore('localData').put(JSON.stringify(parsed),'templates');
+    }).catch(()=>{});
+    return;
+   }
+  }
+ }catch(e){}
+ try{
+  const db=await openLocalTemplatesDb();
+  const data=await new Promise((resolve,reject)=>{
+   const tx=db.transaction('localData','readonly');
+   const request=tx.objectStore('localData').get('templates');
+   request.onsuccess=()=>resolve(request.result||null);
+   request.onerror=()=>reject(request.error);
+  });
+  if(data){
+   const parsed=JSON.parse(data);
+   if(Array.isArray(parsed)){
+    localData=parsed;
+    try{localStorage.setItem('mb_p',JSON.stringify(parsed))}catch(e){}
+   }
+  }
+ }catch(e){}
+ if(localData!==null)mine();
+}
 function mine(){
  const saved=mp();
  const approvedIds=new Set(publicItems.map(p=>String(p.template_id||'')));
@@ -206,8 +273,16 @@ function mine(){
   return `<span style="display:inline-flex;gap:2px"><button data-l="${i}">${esc(p.name)}</button>${status}${isPublished?'':`<button data-publish="${i}">نشر</button>`}<button data-x="${i}">✕</button></span>`;
  }).join('');
 }
-$('#mine').onclick=e=>{const b=e.target.closest('button');if(!b)return;const L=mp();if(b.dataset.l!=null){const p=L[+b.dataset.l];S=JSON.parse(JSON.stringify({cfg:p.cfg,pre:p.pre,row:p.row,post:p.post}));S.cfg={...CFG,...S.cfg};draw()}else if(b.dataset.publish!=null){openPublish(+b.dataset.publish)}else if(b.dataset.x!=null){L.splice(+b.dataset.x,1);try{localStorage.setItem('mb_p',JSON.stringify(L))}catch(e){}mine()}};
-$('#sv').onclick=()=>{const n=$('#pn').value.trim()||('نموذج '+(mp().length+1));const L=mp().filter(p=>p.name!=n);L.push({name:n,...JSON.parse(JSON.stringify(S))});try{localStorage.setItem('mb_p',JSON.stringify(L))}catch(e){}$('#pn').value='';mine()};
+$('#mine').onclick=e=>{const b=e.target.closest('button');if(!b)return;const L=mp();if(b.dataset.l!=null){const p=L[+b.dataset.l];S=JSON.parse(JSON.stringify({cfg:p.cfg,pre:p.pre,row:p.row,post:p.post}));S.cfg={...CFG,...S.cfg};draw()}else if(b.dataset.publish!=null){openPublish(+b.dataset.publish)}else if(b.dataset.x!=null){L.splice(+b.dataset.x,1);persistLocalTemplates(L);mine()}};
+$('#sv').onclick=()=>{
+ const n=$('#pn').value.trim()||('نموذج '+(mp().length+1));
+ const L=mp().filter(p=>String(p.name||'').trim().toLowerCase()!==n.toLowerCase());
+ L.push({name:n,...JSON.parse(JSON.stringify(S))});
+ persistLocalTemplates(L);
+ $('#pn').value='';
+ mine();
+ $('#mineStorageStatus').textContent='تم حفظ النموذج محليًا على هذا الجهاز. لن يتم رفعه إلى المكتبة إلا إذا ضغطت «نشر».';
+};
 const PUBLIC_API="https://script.google.com/macros/s/AKfycbzTqqmVoFnFRl2ytpPRXI_c-ELAmXS6QW_1E_AE8X8SlqNckp6Dutcvvr0mjO6YuHBy/exec";
 let publicItems=[];
 function jsonp(url){
@@ -327,7 +402,7 @@ $('#pmSubmit').addEventListener('click',async()=>{
    if(savedTemplates[publishIndex]){
     savedTemplates[publishIndex].public_template_id=result.template_id||id;
     savedTemplates[publishIndex].publish_status='PENDING';
-    try{localStorage.setItem('mb_p',JSON.stringify(savedTemplates))}catch(e){}
+    persistLocalTemplates(savedTemplates);
     mine();
    }
    $('#pmStatus').textContent='تم استلام النموذج بنجاح، وهو الآن قيد مراجعة المسؤول قبل نشره.';
@@ -353,8 +428,7 @@ $('#publicTemplates').addEventListener('click',e=>{
  const existing=saved.findIndex(x=>x.public_template_id===p.template_id);
  const localCopy={name:p.name,cfg:JSON.parse(JSON.stringify(p.template.cfg)),pre:JSON.parse(JSON.stringify(p.template.pre)),row:JSON.parse(JSON.stringify(p.template.row)),post:JSON.parse(JSON.stringify(p.template.post)),public_template_id:p.template_id};
  if(existing>=0)saved[existing]=localCopy;else saved.push(localCopy);
- try{localStorage.setItem('mb_p',JSON.stringify(saved))}
- catch(err){alert('تعذر حفظ النموذج في نماذج جاهزة: مساحة التخزين ممتلئة أو غير متاحة.');return}
+ persistLocalTemplates(saved);
  S=JSON.parse(JSON.stringify(p.template));
  S.cfg={...CFG,...S.cfg};
  tab='row';draw();
@@ -364,6 +438,7 @@ $('#publicTemplates').addEventListener('click',e=>{
 });
 function draw(){save();cfgSet();tabs();pal();list();code();mine()}
 draw();
+restoreLocalTemplates().then(()=>mine());
 </script>
 <script src="https://www.google.com/recaptcha/api.js?onload=onRecaptchaLoad&render=explicit" async defer></script>
 </body>
