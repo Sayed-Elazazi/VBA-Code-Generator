@@ -438,7 +438,7 @@ $('#pmSubmit').addEventListener('click',async()=>{
 
 $('#pubRefresh').addEventListener('click',refreshPublic);
 $('#pubSearch').addEventListener('input',renderPublic);
-$('#publicTemplates').addEventListener('click',e=>{
+$('#publicTemplates').addEventListener('click',async e=>{
  const b=e.target.closest('[data-public-load]');if(!b)return;
  const p=publicItems.find(x=>String(x.template_id)===b.dataset.publicLoad);
  if(!p||!p.template||typeof p.template!=='object'){alert('بيانات النموذج غير صالحة');return}
