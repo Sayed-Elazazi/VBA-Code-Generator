@@ -195,7 +195,7 @@ function code(){
  o.push('',`    batchSize = ${c.batch||1}`,`    Set ws = ThisWorkbook.Sheets("${q(c.sheet)}")`,`    lastRow = ws.Cells(ws.Rows.Count, "${c.lastCol}").End(xlUp).Row`,'');
  if(c.startWait>0)o.push(`    Application.Wait (Now + TimeSerial(0, 0, ${c.startWait}))`,'');
  if(c.groupEnabled){
-  o.push(`    currentRow = ${startRow}`,'    Do While currentRow <= lastRow',`        groupValue = CStr(ws.Cells(currentRow, "${q(c.groupColumn||'H')}").Value)`,'        groupEnd = currentRow','        Do While groupEnd < lastRow','            If CStr(ws.Cells(groupEnd + 1, "'+${q(c.groupColumn||'H')}'+ '").Value) <> groupValue Then Exit Do','            groupEnd = groupEnd + 1','        Loop','');
+  o.push(`    currentRow = ${startRow}`,'    Do While currentRow <= lastRow',`        groupValue = CStr(ws.Cells(currentRow, "${q(c.groupColumn||'H')}").Value)`,'        groupEnd = currentRow','        Do While groupEnd < lastRow',`            If CStr(ws.Cells(groupEnd + 1, "${q(c.groupColumn||'H')}").Value) <> groupValue Then Exit Do`'            groupEnd = groupEnd + 1','        Loop','');
   if(c.win)o.push('        On Error Resume Next',`        AppActivate "${q(c.win)}"`,'        On Error GoTo 0','        Sleep 300','');
   o.push(...block(S.groupPre,false,'        '));
   o.push(`        batchStart = currentRow`,'        Do While batchStart <= groupEnd','            batchEnd = Application.Min(batchStart + batchSize - 1, groupEnd)','');
