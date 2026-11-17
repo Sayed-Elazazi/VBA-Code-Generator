@@ -12,8 +12,9 @@ html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 "Segoe UI",Tahoma,Arial,sans-serif;padding:12px}
 h1{font-size:19px;margin:4px 0 12px}
-.g{display:grid;grid-template-columns:330px 1fr;gap:12px;max-width:1200px;margin:auto}
-@media(max-width:820px){.g{grid-template-columns:1fr}}
+.g{display:grid;grid-template-columns:minmax(260px,330px) minmax(0,1fr);gap:12px;width:100%;max-width:1600px;margin:0 auto;min-width:0}
+.g>div,.c,#list{min-width:0;max-width:100%}
+@media(max-width:980px){.g{grid-template-columns:minmax(0,1fr)}}
 .c{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:12px;margin-bottom:12px}
 h2{font-size:14px;margin:0 0 8px;color:var(--mu)}
 label{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:5px 0;font-size:13px}
@@ -26,10 +27,13 @@ button:hover{border-color:var(--ac)}
 .p{background:var(--ac);color:#fff;border-color:var(--ac)}
 .tabs{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
 .tabs button.on{background:var(--ac);color:#fff}
-.st{display:flex;align-items:center;gap:8px;border:1px solid var(--bd);border-radius:8px;padding:6px 8px;margin:6px 0;flex-wrap:wrap}
+.st{display:flex;align-items:center;gap:8px;border:1px solid var(--bd);border-radius:8px;padding:6px 8px;margin:6px 0;flex-wrap:wrap;min-width:0;max-width:100%;overflow-wrap:anywhere}
+.st>*{min-width:0;max-width:100%}
 .st b{min-width:22px;color:var(--mu);font-weight:600}
-.st .l{font-weight:600;min-width:90px}
-.st .sp{flex:1}
+.st .l{font-weight:600;min-width:76px}
+.st .sp{flex:1;min-width:0}
+.st input.w{width:min(260px,100%)}
+body{max-width:100%;overflow-x:hidden}
 .st small{color:var(--mu);font-size:12px}
 .em{color:var(--mu);font-size:13px;padding:10px;text-align:center}
 pre{background:var(--cd);color:var(--ct);border-radius:8px;padding:12px;margin:0;direction:ltr;text-align:left;overflow-x:auto;max-height:520px;font:12.5px/1.5 Consolas,monospace;white-space:pre}
@@ -149,7 +153,7 @@ function item(s,i){
  else if(s.t=='waitms'){l='انتظار (ms)';p=`<input type="number" min="1" data-f="n" value="${s.n}"> ms`}
  else if(s.t=='wait'){l='انتظار';p=`<input type="number" min="1" data-f="n" value="${s.n}"> ثانية`}
  else{l='رسالة';p=`<input class="w" data-f="v" value="${esc(s.v)}" style="direction:rtl">`}
- const sg=tab=='groupPre'||tab=='groupPost'?'':tab=='row'?(s.t!='wait'&&s.t!='msg'?`<label style="margin:0"><input type="checkbox" data-f="skip" ${s.skip?'checked':''}><small>مش في آخر صف</small></label>`:''):`<label style="margin:0"><input type="checkbox" data-f="skip" ${s.skip?'checked':''}><small>مش في آخر دفعة</small></label><label style="margin:0"><input type="checkbox" data-f="first" ${s.first?'checked':''}><small>أول دفعة فقط</small></label>`;
+ const sg=tab=='groupPre'||tab=='groupPost'?'':tab=='row'?(s.t!='wait'&&s.t!='msg'?`<label style="margin:0"><input type="checkbox" data-f="skip" ${s.skip?'checked':''}><small>مش في آخر صف</small></label>`:''):`<label style="margin:0"><input type="checkbox" data-f="skip" ${s.skip?'checked':''}><small>مش في آخر دفعة</small></label><label style="margin:0"><input type="checkbox" data-f="first" ${s.first?'checked':''}><small>${S.cfg.groupEnabled?"أول دفعة في كل إذن":"أول دفعة فقط"}</small></label>`;
  return `<div class="st" data-i="${i}"><b>${i+1}</b><span class="l">${l}</span>${p}<span class="sp"></span>${sg}<button data-a="up">↑</button><button data-a="dn">↓</button><button data-a="dup">نسخ</button><button data-a="del">✕</button></div>`}
 function list(){$('#list').innerHTML=S[tab].map(item).join('')||'<div class="em">لسه مفيش أوامر — اضغط على أي أمر من القائمة لإضافته</div>'}
 $('#list').addEventListener('input',e=>{const el=e.target,r=el.closest('.st');if(!r)return;const s=S[tab][+r.dataset.i],f=el.dataset.f;
@@ -176,7 +180,7 @@ function lines(s,row){
  return[`MsgBox "${q(s.v)}", vbInformation`]}
 function block(L,row,ind){const c=S.cfg,o=[];
  L.forEach(s=>{let x=lines(s,row);if(c.delay>0)x=x.flatMap(l=>/^(SendKeys|CtrlKey|ShiftIns|NavKey)/.test(l)?[l,`Sleep ${c.delay}`]:[l]);
-  const cd=[];if(s.skip)cd.push(row?'i <> lastRow':'batchEnd < lastRow');if(s.first&&!row)cd.push(`batchStart = ${c.startRow||1}`);if(cd.length){o.push(ind+'If '+cd.join(' And ')+' Then');x.forEach(l=>o.push(ind+'    '+l));o.push(ind+'End If')}else x.forEach(l=>o.push(ind+l))});
+  const cd=[];if(s.skip)cd.push(row?'i <> lastRow':'batchEnd < lastRow');if(s.first&&!row)cd.push(c.groupEnabled?'batchStart = currentRow':`batchStart = ${c.startRow||1}`);if(cd.length){o.push(ind+'If '+cd.join(' And ')+' Then');x.forEach(l=>o.push(ind+'    '+l));o.push(ind+'End If')}else x.forEach(l=>o.push(ind+l))});
  return o}
 function code(){
  const c=S.cfg,o=['Option Explicit',''];
