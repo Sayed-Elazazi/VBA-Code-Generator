@@ -147,7 +147,7 @@ function item(s,i){
  else if(s.t=='waitms'){l='انتظار (ms)';p=`<input type="number" min="1" data-f="n" value="${s.n}"> ms`}
  else if(s.t=='wait'){l='انتظار';p=`<input type="number" min="1" data-f="n" value="${s.n}"> ثانية`}
  else{l='رسالة';p=`<input class="w" data-f="v" value="${esc(s.v)}" style="direction:rtl">`}
- const sg=tab=='row'?(s.t!='wait'&&s.t!='msg'?`<label style="margin:0"><input type="checkbox" data-f="skip" ${s.skip?'checked':''}><small>مش في آخر صف</small></label>`:''):`<label style="margin:0"><input type="checkbox" data-f="skip" ${s.skip?'checked':''}><small>مش في آخر دفعة</small></label><label style="margin:0"><input type="checkbox" data-f="first" ${s.first?'checked':''}><small>أول دفعة فقط</small></label>`;
+ const sg=tab=='groupPre'||tab=='groupPost'?'':tab=='row'?(s.t!='wait'&&s.t!='msg'?`<label style="margin:0"><input type="checkbox" data-f="skip" ${s.skip?'checked':''}><small>مش في آخر صف</small></label>`:''):`<label style="margin:0"><input type="checkbox" data-f="skip" ${s.skip?'checked':''}><small>مش في آخر دفعة</small></label><label style="margin:0"><input type="checkbox" data-f="first" ${s.first?'checked':''}><small>أول دفعة فقط</small></label>`;
  return `<div class="st" data-i="${i}"><b>${i+1}</b><span class="l">${l}</span>${p}<span class="sp"></span>${sg}<button data-a="up">↑</button><button data-a="dn">↓</button><button data-a="dup">نسخ</button><button data-a="del">✕</button></div>`}
 function list(){$('#list').innerHTML=S[tab].map(item).join('')||'<div class="em">لسه مفيش أوامر — اضغط على أي أمر من القائمة لإضافته</div>'}
 $('#list').addEventListener('input',e=>{const el=e.target,r=el.closest('.st');if(!r)return;const s=S[tab][+r.dataset.i],f=el.dataset.f;
