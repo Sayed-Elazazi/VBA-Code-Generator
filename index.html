@@ -180,7 +180,7 @@ function lines(s,row){
  return[`MsgBox "${q(s.v)}", vbInformation`]}
 function block(L,row,ind){const c=S.cfg,o=[];
  L.forEach(s=>{let x=lines(s,row);if(c.delay>0)x=x.flatMap(l=>/^(SendKeys|CtrlKey|ShiftIns|NavKey)/.test(l)?[l,`Sleep ${c.delay}`]:[l]);
-  const cd=[];if(s.skip)cd.push(row?'i <> lastRow':'batchEnd < lastRow');if(s.first&&!row)cd.push(c.groupEnabled?'batchStart = currentRow':`batchStart = ${c.startRow||1}`);if(cd.length){o.push(ind+'If '+cd.join(' And ')+' Then');x.forEach(l=>o.push(ind+'    '+l));o.push(ind+'End If')}else x.forEach(l=>o.push(ind+l))});
+  const cd=[];if(s.skip)cd.push(row?'i <> lastRow':(c.groupEnabled?'batchEnd < groupEnd':'batchEnd < lastRow'));if(s.first&&!row)cd.push(c.groupEnabled?'batchStart = currentRow':`batchStart = ${c.startRow||1}`);if(cd.length){o.push(ind+'If '+cd.join(' And ')+' Then');x.forEach(l=>o.push(ind+'    '+l));o.push(ind+'End If')}else x.forEach(l=>o.push(ind+l))});
  return o}
 function code(){
  const c=S.cfg,o=['Option Explicit',''];
